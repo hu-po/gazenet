@@ -1,0 +1,8 @@
+# Data
+data/*
+!data/data_collector.py
+
+# Generated files
+.idea*
+__pycache__*
+.ipynb_checkpoints*
