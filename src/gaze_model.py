@@ -1,7 +1,6 @@
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from helper_func import define_scope
-from tensorflow.examples.tutorials.mnist import input_data
+from src.helper_func import define_scope
 
 '''
 
@@ -37,13 +36,13 @@ class GazeModel(object):
         x = slim.max_pool2d(x, [2, 2], scope='pool1')
         x = slim.fully_connected(x, 256)
         x = slim.fully_connected(x, 128)
-        x = slim.fully_connected(x, 4, tf.nn.softmax)
+        x = slim.fully_connected(x, self.config['output_class'], tf.nn.softmax)
         return x
 
     @define_scope
     def optimize(self):
         loss = slim.losses.softmax_cross_entropy(self.predict, self.target)
-        optimizer = tf.train.RMSPropOptimizer(0.03)
+        optimizer = tf.train.RMSPropOptimizer(self.config['learning_rate'])
         return optimizer.minimize(loss)
 
     @define_scope
@@ -58,12 +57,9 @@ class GazeModel(object):
 
 
 def main():
-    mnist = input_data.read_data_sets('./mnist/', one_hot=True)
 
-    config = {'input_height': 28,
-              'input_width': 28,
-              'input_channels': 3,
-              'output_class': 4}
+    config = {'output_class': 4,
+              'learning_rate':}
 
     # Input image dimensions from config
     h = config['input_height']
