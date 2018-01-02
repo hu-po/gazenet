@@ -2,6 +2,10 @@ import tensorflow as tf
 import os, sys
 import argparse
 import time
+
+mod_path = os.path.abspath(os.path.join('..'))
+sys.path.append(mod_path)
+
 from src.gaze_model import GazeModel
 from src.config import DATA_DIR
 
@@ -20,6 +24,8 @@ BATCH_SIZE = 16
 LEARNING_RATE = 0.01
 
 # Model parameters
+IMAGE_WIDTH = 128
+IMAGE_HEIGHT = 96
 OUTPUT_CLASSES = 4
 
 
@@ -33,16 +39,21 @@ def decode(serialized_example):
             'image_raw': tf.FixedLenFeature([], tf.string),
         })
 
-    # Extract image dimmensions from features
-    height = tf.cast(features['height'], tf.int32)
-    width = tf.cast(features['width'], tf.int32)
-
     # Extract label
     label = tf.cast(features['label'], tf.int32)
 
     # Extract image from image string (convert to uint8 and then re-size)
     image = tf.decode_raw(features['image_raw'], tf.uint8)
-    image_shape = tf.pack([height, width, 3])
+
+    # # Resize using variable size from tfrecords file
+    # # Extract image dimmensions from features
+    # height = tf.cast(features['height'], tf.int32)
+    # width = tf.cast(features['width'], tf.int32)
+    # image_shape = tf.stack([height, width, 3])
+    # image = tf.reshape(image, image_shape)
+
+    # Resize to given image size
+    image_shape = tf.stack([IMAGE_HEIGHT, IMAGE_WIDTH, 3])
     image = tf.reshape(image, image_shape)
 
     return image, label
@@ -122,7 +133,7 @@ def run_training():
                                       num_epochs=FLAGS.num_epochs)
 
     # Model requires some configs
-    config = {'output_class': OUTPUT_CLASSES,
+    config = {'output_classes': OUTPUT_CLASSES,
               'learning_rate': FLAGS.learning_rate}
 
     # Model from class
@@ -132,7 +143,7 @@ def run_training():
     init_op = tf.group(tf.global_variables_initializer(),
                        tf.local_variables_initializer())
 
-    with tf.Session as sess:
+    with tf.Session() as sess:
         # Initialize variables
         sess.run(init_op)
 
@@ -142,16 +153,15 @@ def run_training():
                 start_time = time.time()
 
                 # Run one step of the model.
-                loss, error = sess.run([model.optimize, model.error])
+                _, error = sess.run([model.optimize, model.error])
 
                 duration = time.time() - start_time
 
                 # Print an overview fairly often.
                 if step % 100 == 0:
-                    print('Step %d (%.3f sec): loss = %.2f, error = %.2f ' % (step,
-                                                                              loss,
-                                                                              error,
-                                                                              duration))
+                    print('Step %d (%.3f sec): error = %.2f ' % (step,
+                                                                 duration,
+                                                                 error))
                 step += 1
         except tf.errors.OutOfRangeError:
             print('Done training for %d epochs, %d steps.' % (FLAGS.num_epochs, step))
@@ -183,7 +193,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--dataset',
-        type=int,
+        type=str,
         default=DATASET_NAME,
         help='Dataset name to train on.'
     )
