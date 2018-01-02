@@ -2,6 +2,10 @@
 data/*
 !data/data_collector.py
 
+# Unity Files
+unity
+unity/*
+
 # Generated files
 .idea*
 __pycache__*
