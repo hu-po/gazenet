@@ -20,21 +20,21 @@ The output:
 
 '''
 
+
 class GazeModel(object):
 
-    def __init__(self, image, label, config): #test_image, test_label, config):
+    def __init__(self, image, label, config):
         self.image = image
         self.label = label
-        # self.test_image = test_image
-        # self.test_label = test_label
         self.config = config
         self.predict
         self.optimize
-        self.loss
+        self.accuracy
 
     @define_scope(initializer=slim.xavier_initializer())
     def predict(self):
         x = self.image
+        # tf.summary.image('input_image', x)
         x = slim.conv2d(x, 32, [3, 3], scope='conv1')
         x = slim.conv2d(x, 64, [3, 3], scope='conv2')
         x = slim.max_pool2d(x, [2, 2], scope='pool1')
@@ -46,13 +46,15 @@ class GazeModel(object):
 
     @define_scope
     def optimize(self):
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=self.label,
-                                                      logits=self.predict)
+        loss = tf.losses.sparse_softmax_cross_entropy(labels=self.label, logits=self.predict)
+        tf.summary.scalar('loss', loss)
         optimizer = tf.train.RMSPropOptimizer(self.config['learning_rate'])
         return optimizer.minimize(loss)
 
     @define_scope
-    def loss(self):
+    def accuracy(self):
         predicted_label = tf.cast(tf.argmax(self.predict, 1), tf.int32)
         mistakes = tf.not_equal(self.label, predicted_label)
-        return tf.reduce_mean(tf.cast(mistakes, tf.float32))
+        accuracy = tf.reduce_mean(tf.cast(mistakes, tf.float32))
+        tf.summary.scalar('accuracy', accuracy)
+        return accuracy

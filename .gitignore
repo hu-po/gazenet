@@ -2,8 +2,9 @@
 data/*
 !data/data_collector.py
 
-# Logs
-data/*
+# Logs and Models
+logs/*
+models/*
 
 # Unity Files
 unity

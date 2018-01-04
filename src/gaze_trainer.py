@@ -7,7 +7,7 @@ mod_path = os.path.abspath(os.path.join('..'))
 sys.path.append(mod_path)
 
 from src.gaze_model import GazeModel
-from src.config import DATA_DIR
+from src.config import DATA_DIR, LOG_DIR, MODEL_DIR
 
 '''
 This file is used to train the gaze net. It contains functions for reading
@@ -19,7 +19,7 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos
 
 # Default Parameters:
 DATASET_NAME = '020118_fingers'
-NUM_EPOCHS = 10
+NUM_EPOCHS = 5
 BATCH_SIZE = 5
 BUFFER_SIZE = 10
 LEARNING_RATE = 0.01
@@ -116,10 +116,19 @@ def run_training(dataset_name, batch_size, buffer_size, num_epochs):
     image_batch, label_batch = next_element
     model = GazeModel(image_batch, label_batch, config)
 
+    # Merge all summary ops for saving during training
+    merged_summary = tf.summary.merge_all()
+
     # The op for initializing the variables.
-    init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+    init_op = tf.group(tf.global_variables_initializer())#, tf.local_variables_initializer())
 
     with tf.Session() as sess:
+        # Write logs to path
+        log_filename = os.path.join(LOG_DIR, DATASET_NAME)
+        writer = tf.summary.FileWriter(log_filename)  # , sess.graph)
+        # Write model checkpoints
+        model_filename = os.path.join(MODEL_DIR, DATASET_NAME)
+        saver = tf.train.Saver()
         # Initialize variables
         sess.run(init_op)
         for epoch_idx in range(num_epochs):
@@ -130,12 +139,15 @@ def run_training(dataset_name, batch_size, buffer_size, num_epochs):
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
                     sess.run(next_element)
-                    _, loss = sess.run([model.optimize, model.loss])
+                    _, acc = sess.run([model.optimize, model.accuracy])
                     num_train_steps += 1
             except tf.errors.OutOfRangeError:
                 epoch_train_duration = time.time() - epoch_train_start
                 print('Training: Epoch %d (%.3f sec) - %d steps' % (epoch_idx, epoch_train_duration, num_train_steps))
-                print('        -- Loss %.2f ' % loss)
+                print('        -- Accuracy %.2f ' % acc)
+                # Save model
+                save_path = saver.save(sess, model_filename)
+                print('Model checkpoint saved at %s' % save_path)
             # Validation Step
             sess.run(val_init_op)
             epoch_val_start = time.time()
@@ -143,12 +155,14 @@ def run_training(dataset_name, batch_size, buffer_size, num_epochs):
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
                     sess.run(next_element)
-                    _, loss = sess.run([model.optimize, model.loss])
+                    summary, _, acc = sess.run([merged_summary, model.optimize, model.accuracy])
                     num_val_steps += 1
             except tf.errors.OutOfRangeError:
                 epoch_val_duration = time.time() - epoch_val_start
                 print('Validation: Epoch %d (%.3f sec) - %d steps' % (epoch_idx, epoch_val_duration, num_val_steps))
-                print('        -- Loss %.2f ' % loss)
+                print('        -- Accuracy %.2f ' % acc)
+                writer.add_summary(summary, epoch_idx)
+        writer.close()
 
 
 def main(_):
