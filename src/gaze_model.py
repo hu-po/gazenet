@@ -22,17 +22,18 @@ The output:
 
 class GazeModel(object):
 
-    def __init__(self, image, target, config):
+    def __init__(self, image, label, config): #test_image, test_label, config):
         self.image = image
-        self.target = target
+        self.label = label
+        # self.test_image = test_image
+        # self.test_label = test_label
         self.config = config
         self.predict
         self.optimize
-        self.error
+        self.loss
 
-    @define_scope(initializer=slim.xavier_initializer())#,regularizer=slim.l2_regularizer(scale=))
+    @define_scope(initializer=slim.xavier_initializer())
     def predict(self):
-        # Simple test model
         x = self.image
         x = slim.conv2d(x, 32, [3, 3], scope='conv1')
         x = slim.conv2d(x, 64, [3, 3], scope='conv2')
@@ -45,44 +46,13 @@ class GazeModel(object):
 
     @define_scope
     def optimize(self):
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=self.target,
+        loss = tf.losses.sparse_softmax_cross_entropy(labels=self.label,
                                                       logits=self.predict)
         optimizer = tf.train.RMSPropOptimizer(self.config['learning_rate'])
         return optimizer.minimize(loss)
 
     @define_scope
-    def error(self):
-        predicted_label = tf.cast(tf.argmax(self.predict, 1), tf.int32)
-        mistakes = tf.not_equal(self.target, predicted_label)
-        return tf.reduce_mean(tf.cast(mistakes, tf.float32))
-
-    @define_scope
     def loss(self):
-        pass
-
-# def main():
-#
-#     config = {'output_class': 4,
-#               'learning_rate':}
-#
-#     # Input image dimensions from config
-#     h = config['input_height']
-#     w = config['input_width']
-#     c = config['input_channels']
-#     image = tf.placeholder(tf.float32, [None, h, w, c])
-#     label = tf.placeholder(tf.float32, [None, config['output_class']])
-#
-#     model = GazeModel(image, label)
-#     sess = tf.Session()
-#     sess.run(tf.initialize_all_variables())
-#
-#     for _ in range(10):
-#         images, labels = mnist.test.images, mnist.test.labels
-#         error = sess.run(model.error, {image: images, label: labels})
-#         print('Test error {:6.2f}%'.format(100 * error))
-#         for _ in range(60):
-#             images, labels = mnist.train.next_batch(100)
-#             sess.run(model.optimize, {image: images, label: labels})
-#
-# if __name__ == '__main__':
-#     main()
+        predicted_label = tf.cast(tf.argmax(self.predict, 1), tf.int32)
+        mistakes = tf.not_equal(self.label, predicted_label)
+        return tf.reduce_mean(tf.cast(mistakes, tf.float32))

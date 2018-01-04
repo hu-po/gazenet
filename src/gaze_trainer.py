@@ -20,7 +20,8 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos
 # Default Parameters:
 DATASET_NAME = '020118_fingers'
 NUM_EPOCHS = 10
-BATCH_SIZE = 16
+BATCH_SIZE = 5
+BUFFER_SIZE = 10
 LEARNING_RATE = 0.01
 
 # Model parameters
@@ -38,137 +39,123 @@ def decode(serialized_example):
             'label': tf.FixedLenFeature([], tf.int64),
             'image_raw': tf.FixedLenFeature([], tf.string),
         })
-
     # Extract label
     label = tf.cast(features['label'], tf.int32)
-
     # Extract image from image string (convert to uint8 and then re-size)
     image = tf.decode_raw(features['image_raw'], tf.uint8)
-
-    # # Resize using variable size from tfrecords file
-    # # Extract image dimmensions from features
-    # height = tf.cast(features['height'], tf.int32)
-    # width = tf.cast(features['width'], tf.int32)
-    # image_shape = tf.stack([height, width, 3])
-    # image = tf.reshape(image, image_shape)
-
-    # Resize to given image size
     image_shape = tf.stack([IMAGE_HEIGHT, IMAGE_WIDTH, 3])
     image = tf.reshape(image, image_shape)
-
     return image, label
 
 
 def augment(image, label):
     # Flip image from left to right
     image = tf.image.random_flip_left_right(image)
-
     return image, label
 
 
 def normalize(image, label):
     # Convert from [0, 255] -> [-0.5, 0.5] floats.
     image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
-
     return image, label
 
 
-def inputs(train, batch_size, num_epochs):
-    """
-    Reads input data num_epochs times.
-    Args:
-      train: Selects between the training (True) and validation (False) data.
-      batch_size: Number of examples per returned batch.
-      num_epochs: Number of times to read the input data, or 0/None to
-         train forever.
-    Returns:
-      A tuple (images, labels), where:
-      * images is a float tensor with shape [batch_size, num_pixels]
-        in the range [-0.5, 0.5].
-      * labels is an int32 tensor with shape [batch_size] with the true label
-      This function creates a one_shot_iterator, meaning that it will only iterate
-      over the dataset once. On the other hand there is no special initialization
-      required.
-    """
-    if not num_epochs:
-        num_epochs = None
-    filename = os.path.join(DATA_DIR,
-                            FLAGS.dataset,
-                            'train.tfrecords' if train else 'test.tfrecords')
-
-    with tf.name_scope('input'):
-        # TFRecordDataset opens a protobuf and reads entries line by line
+def build_training_dataset(dataset_name, batch_size, buffer_size):
+    filename = os.path.join(DATA_DIR, dataset_name, 'train.tfrecords')
+    with tf.name_scope('train_input'):
         dataset = tf.data.TFRecordDataset(filename)
-        dataset = dataset.repeat(num_epochs)
-
-        # map takes a python function and applies it to every sample
         dataset = dataset.map(decode)
         dataset = dataset.map(augment)
         dataset = dataset.map(normalize)
-
-        # min_after_dequeue defines how big a buffer we will randomly sample
-        #   from -- bigger means better shuffling but slower start up and more memory used.
-        min_after_dequeue = 10
-
-        # capacity must be larger than min_after_dequeue and the amount larger
-        #   determines the maximum we will prefetch.  Recommendation:
-        #   min_after_dequeue + (num_threads + a small safety margin) * batch_size
-        capacity = min_after_dequeue + 3 * batch_size
-
-        dataset = dataset.shuffle(capacity)
+        # bigger means better shuffling but slower start up and more memory used.
+        dataset = dataset.shuffle(buffer_size)
         dataset = dataset.batch(batch_size)
-
-        iterator = dataset.make_one_shot_iterator()
-        return iterator.get_next()
+    return dataset
 
 
-def run_training():
+def build_validation_dataset(dataset_name, batch_size, buffer_size):
+    filename = os.path.join(DATA_DIR, dataset_name, 'test.tfrecords')
+    with tf.name_scope('test_input'):
+        dataset = tf.data.TFRecordDataset(filename)
+        dataset = dataset.map(decode)
+        dataset = dataset.map(normalize)
+        dataset = dataset.shuffle(buffer_size)
+        dataset = dataset.batch(batch_size)
+    return dataset
+
+
+def create_iterators(training_dataset, validation_dataset):
+    # Datasets should both have the same structure
+    iterator = tf.data.Iterator.from_structure(training_dataset.output_types,
+                                               training_dataset.output_shapes)
+    # Reinitializable iterator.
+    next_element = iterator.get_next()
+    # Create the initializers for both test and train datasets
+    train_init_op = iterator.make_initializer(training_dataset)
+    val_init_op = iterator.make_initializer(validation_dataset)
+    return next_element, train_init_op, val_init_op
+
+
+def run_training(dataset_name, batch_size, buffer_size, num_epochs):
     """
         Train gaze_trainer for the given number of steps.
     """
 
-    # Input images and labels.
-    image_batch, label_batch = inputs(train=True,
-                                      batch_size=FLAGS.batch_size,
-                                      num_epochs=FLAGS.num_epochs)
+    # Training and validation datasets
+    training_dataset = build_training_dataset(dataset_name, batch_size, buffer_size)
+    validation_dataset = build_validation_dataset(dataset_name, batch_size, buffer_size)
+
+    # Input images and labels for training
+    next_element, train_init_op, val_init_op = create_iterators(training_dataset, validation_dataset)
 
     # Model requires some configs
     config = {'output_classes': OUTPUT_CLASSES,
               'learning_rate': FLAGS.learning_rate}
 
-    # Model from class
+    # Get images and labels from iterator, create model from class
+    image_batch, label_batch = next_element
     model = GazeModel(image_batch, label_batch, config)
 
     # The op for initializing the variables.
-    init_op = tf.group(tf.global_variables_initializer(),
-                       tf.local_variables_initializer())
+    init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 
     with tf.Session() as sess:
         # Initialize variables
         sess.run(init_op)
-
-        try:
-            step = 0
-            while True:  # train until OutOfRangeError
-                start_time = time.time()
-
-                # Run one step of the model.
-                _, error = sess.run([model.optimize, model.error])
-
-                duration = time.time() - start_time
-
-                # Print an overview fairly often.
-                if step % 100 == 0:
-                    print('Step %d (%.3f sec): error = %.2f ' % (step,
-                                                                 duration,
-                                                                 error))
-                step += 1
-        except tf.errors.OutOfRangeError:
-            print('Done training for %d epochs, %d steps.' % (FLAGS.num_epochs, step))
+        for epoch_idx in range(num_epochs):
+            # Training Step
+            sess.run(train_init_op)
+            epoch_train_start = time.time()
+            num_train_steps = 0
+            try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
+                while True:
+                    sess.run(next_element)
+                    _, loss = sess.run([model.optimize, model.loss])
+                    num_train_steps += 1
+            except tf.errors.OutOfRangeError:
+                epoch_train_duration = time.time() - epoch_train_start
+                print('Training: Epoch %d (%.3f sec) - %d steps' % (epoch_idx, epoch_train_duration, num_train_steps))
+                print('        -- Loss %.2f ' % loss)
+            # Validation Step
+            sess.run(val_init_op)
+            epoch_val_start = time.time()
+            num_val_steps = 0
+            try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
+                while True:
+                    sess.run(next_element)
+                    _, loss = sess.run([model.optimize, model.loss])
+                    num_val_steps += 1
+            except tf.errors.OutOfRangeError:
+                epoch_val_duration = time.time() - epoch_val_start
+                print('Validation: Epoch %d (%.3f sec) - %d steps' % (epoch_idx, epoch_val_duration, num_val_steps))
+                print('        -- Loss %.2f ' % loss)
 
 
 def main(_):
-    run_training()
+    run_training(dataset_name=FLAGS.dataset,
+                 batch_size=FLAGS.batch_size,
+                 buffer_size=FLAGS.buffer_size,
+                 num_epochs=FLAGS.num_epochs)
 
 
 if __name__ == '__main__':
@@ -184,6 +171,12 @@ if __name__ == '__main__':
         type=int,
         default=NUM_EPOCHS,
         help='Number of epochs to run trainer.'
+    )
+    parser.add_argument(
+        '--buffer_size',
+        type=int,
+        default=BUFFER_SIZE,
+        help='Buffer size when shuffling batches'
     )
     parser.add_argument(
         '--batch_size',
