@@ -19,8 +19,8 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos
 
 # Default Parameters:
 DATASET_NAME = '020118_fingers'
-NUM_EPOCHS = 5
-BATCH_SIZE = 5
+NUM_EPOCHS = 10
+BATCH_SIZE = 3
 BUFFER_SIZE = 10
 LEARNING_RATE = 0.01
 
@@ -116,21 +116,21 @@ def run_training(dataset_name, batch_size, buffer_size, num_epochs):
     image_batch, label_batch = next_element
     model = GazeModel(image_batch, label_batch, config)
 
-    # Merge all summary ops for saving during training
-    merged_summary = tf.summary.merge_all()
-
     # The op for initializing the variables.
-    init_op = tf.group(tf.global_variables_initializer())#, tf.local_variables_initializer())
+    init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+
+    # Merge all summary ops for saving during training
+    merged_summary_op = tf.summary.merge_all()
 
     with tf.Session() as sess:
+        # Initialize variables
+        sess.run(init_op)
         # Write logs to path
         log_filename = os.path.join(LOG_DIR, DATASET_NAME)
-        writer = tf.summary.FileWriter(log_filename)  # , sess.graph)
+        writer = tf.summary.FileWriter(log_filename, sess.graph)
         # Write model checkpoints
         model_filename = os.path.join(MODEL_DIR, DATASET_NAME)
         saver = tf.train.Saver()
-        # Initialize variables
-        sess.run(init_op)
         for epoch_idx in range(num_epochs):
             # Training Step
             sess.run(train_init_op)
@@ -155,13 +155,13 @@ def run_training(dataset_name, batch_size, buffer_size, num_epochs):
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
                     sess.run(next_element)
-                    summary, _, acc = sess.run([merged_summary, model.optimize, model.accuracy])
+                    acc, summary = sess.run([model.accuracy, merged_summary_op])
+                    writer.add_summary(summary, epoch_idx)
                     num_val_steps += 1
             except tf.errors.OutOfRangeError:
                 epoch_val_duration = time.time() - epoch_val_start
                 print('Validation: Epoch %d (%.3f sec) - %d steps' % (epoch_idx, epoch_val_duration, num_val_steps))
                 print('        -- Accuracy %.2f ' % acc)
-                writer.add_summary(summary, epoch_idx)
         writer.close()
 
 
