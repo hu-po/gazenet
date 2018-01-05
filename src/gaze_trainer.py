@@ -19,7 +19,7 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos
 
 # Default Parameters:
 DATASET_NAME = '020118_fingers'
-NUM_EPOCHS = 5
+NUM_EPOCHS = 10
 BATCH_SIZE = 3
 BUFFER_SIZE = 10
 LEARNING_RATE = 0.01
