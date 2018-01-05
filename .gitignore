@@ -16,12 +16,13 @@ __pycache__*
 # =============== #
 # Unity generated #
 # =============== #
-/[Ll]ibrary/
-/[Tt]emp/
-/[Oo]bj/
-/[Bb]uild/
-/[Bb]uilds/
-/Assets/AssetStoreTools*
+**/[Ll]ibrary/
+**/[Tt]emp/
+**/[Oo]bj/
+**/[Bb]uild/
+**/[Bb]uilds/
+**/Assets/AssetStoreTools*
+**/.vs/
 sysinfo.txt
 *.stackdump
 *.apk
@@ -43,7 +44,7 @@ ExportedObj/
 *.booproj
 *.svd
 *.pdb
-/.vs/
+
 
 # ============ #
 # OS generated #
