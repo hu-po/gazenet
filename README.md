@@ -7,15 +7,14 @@ simulator and makes them more "real" using a GAN.
 ## Requirements
 
 - Python 3.5
-- [TensorFlow](https://www.tensorflow.org/) 0.12.1
-- [Unity](blank)
-- [OpenCV](blank)
+- [TensorFlow](https://www.tensorflow.org/) 0.14
+- [Unity](blank) 2017.3
+- [OpenCV](blank) 3.0
 
 ## Sources
 
 [1] [Learning from Simulated and Unsupervised Images through Adversarial Training](https://arxiv.org/abs/1612.07828).
-[2] [Structuring Your TensorFlow Models](https://danijar.com/structuring-your-tensorflow-models/)
 
 ## Author
 
-Hugo Ponte / [@carpedm20](http://carpedm20.github.io)
+Hugo Ponte
