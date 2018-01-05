@@ -2,16 +2,14 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 '''
-
 This network outputs the gaze location for a given webcam image.
 
 The input:
-* Webcam image (128x128x3)
-* Target gaze location (quadrant?)
+* Webcam image (128x98x3)
+* Target gaze location (2x1)
 
 The output:
 * A trained refiner network
-
 '''
 
 

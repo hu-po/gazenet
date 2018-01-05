@@ -18,7 +18,7 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos
 '''
 
 # Default Parameters:
-DATASET_NAME = '020118_fingers'
+DATASET_NAME = '04012018_headlook'
 NUM_EPOCHS = 10
 BATCH_SIZE = 3
 BUFFER_SIZE = 10
@@ -34,18 +34,18 @@ def decode(serialized_example):
     features = tf.parse_single_example(
         serialized_example,
         features={
-            'height': tf.FixedLenFeature([], tf.int64),
-            'width': tf.FixedLenFeature([], tf.int64),
-            'label': tf.FixedLenFeature([], tf.int64),
+            'gaze_x': tf.FixedLenFeature([], tf.int64),
+            'gaze_y': tf.FixedLenFeature([], tf.int64),
             'image_raw': tf.FixedLenFeature([], tf.string),
         })
-    # Extract label
-    label = tf.cast(features['label'], tf.int32)
+    gaze_x = tf.cast(features['gaze_x'], tf.int32)
+    gaze_y = tf.cast(features['gaze_y'], tf.int32)
+    target = [gaze_x, gaze_y]
     # Extract image from image string (convert to uint8 and then re-size)
     image = tf.decode_raw(features['image_raw'], tf.uint8)
     image_shape = tf.stack([IMAGE_HEIGHT, IMAGE_WIDTH, 3])
     image = tf.reshape(image, image_shape)
-    return image, label
+    return image, target
 
 
 def augment(image, label):
