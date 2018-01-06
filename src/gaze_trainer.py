@@ -1,36 +1,22 @@
-import tensorflow as tf
-import os, sys
+import os
+import sys
 import argparse
 import time
+import tensorflow as tf
 
-mod_path = os.path.abspath(os.path.join('..'))
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
 from src.gaze_model import GazeModel
-from src.config import DATA_DIR, LOG_DIR, MODEL_DIR
+import src.config as config
 
 '''
 This file is used to train the gaze net. It contains functions for reading
 and decoding the data (should be in TFRecords format).
-
-Much of this is sourced from the TF mnist example:
-https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos/reading_data/fully_connected_reader.py
 '''
 
-# Default Parameters:
-DATASET_NAME = '04012018_headlook'
-NUM_EPOCHS = 10
-BATCH_SIZE = 3
-BUFFER_SIZE = 10
-LEARNING_RATE = 0.01
 
-# Model parameters
-IMAGE_WIDTH = 128
-IMAGE_HEIGHT = 96
-OUTPUT_CLASSES = 4
-
-
-def decode(serialized_example):
+def _decode(serialized_example):
     features = tf.parse_single_example(
         serialized_example,
         features={
@@ -41,33 +27,31 @@ def decode(serialized_example):
     gaze_x = tf.cast(features['gaze_x'], tf.int32)
     gaze_y = tf.cast(features['gaze_y'], tf.int32)
     target = [gaze_x, gaze_y]
-    # Extract image from image string (convert to uint8 and then re-size)
     image = tf.decode_raw(features['image_raw'], tf.uint8)
-    image_shape = tf.stack([IMAGE_HEIGHT, IMAGE_WIDTH, 3])
+    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels])
     image = tf.reshape(image, image_shape)
     return image, target
 
 
-def augment(image, label):
-    # Flip image from left to right
-    image = tf.image.random_flip_left_right(image)
+def _image_prep(image, label):
+    with tf.name_scope('image prep'):
+        if config.grayscale:
+            image = tf.image.rgb_to_grayscale(image)
+        # Apply image adjustments to reduce overfitting
+        image = tf.image.random_brightness(image)
+        image = tf.image.random_contrast(image)
+        image = tf.image.random_hue(image)
+        image = tf.image.random_saturation(image)
+        # Normalize images
+        image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
     return image, label
-
-
-def normalize(image, label):
-    # Convert from [0, 255] -> [-0.5, 0.5] floats.
-    image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
-    return image, label
-
 
 def build_training_dataset(dataset_name, batch_size, buffer_size):
-    filename = os.path.join(DATA_DIR, dataset_name, 'train.tfrecords')
+    filename = os.path.join(config.data_dir, dataset_name, 'train.tfrecords')
     with tf.name_scope('train_input'):
         dataset = tf.data.TFRecordDataset(filename)
-        dataset = dataset.map(decode)
-        dataset = dataset.map(augment)
-        dataset = dataset.map(normalize)
-        # bigger means better shuffling but slower start up and more memory used.
+        dataset = dataset.map(_decode)
+        dataset = dataset.map(_image_prep)
         dataset = dataset.shuffle(buffer_size)
         dataset = dataset.batch(batch_size)
     return dataset
