@@ -28,7 +28,7 @@ def _decode(serialized_example):
     gaze_y = tf.cast(features['gaze_y'], tf.int32)
     target = [gaze_x, gaze_y]
     image = tf.decode_raw(features['image_raw'], tf.uint8)
-    image_shape = tf.stack([config.image_width, config.image_height, config.image_channels])
+    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels])
     image = tf.reshape(image, image_shape)
     return image, target
 
@@ -63,8 +63,8 @@ def _train_feed():
         dataset = dataset.map(_image_prep)
         dataset = dataset.shuffle(config.buffer_size)
         dataset = dataset.batch(config.batch_size)
-        iterator = dataset.make_one_shot_iterator()
-    return iterator.get_next()
+        iterator = dataset.make_initializable_iterator()
+    return iterator, iterator.get_next()
 
 
 def _test_feed():
@@ -74,8 +74,8 @@ def _test_feed():
         dataset = dataset.map(_decode)
         dataset = dataset.map(_image_prep)
         dataset = dataset.batch(config.num_test_examples)
-        iterator = dataset.make_one_shot_iterator()
-    return iterator.get_next()
+        iterator = dataset.make_initializable_iterator()
+    return iterator, iterator.get_next()
 
 
 def run_training(config):
@@ -83,8 +83,8 @@ def run_training(config):
         Train gaze_trainer for the given number of steps.
     """
     # train and test iterators, need dataset to create feedable iterator
-    train_batch = _train_feed()
-    test_batch = _test_feed()
+    train_iterator, train_batch = _train_feed()
+    test_iterator, test_batch = _test_feed()
 
     # Get images and labels from iterator, create model from class
     model = GazeModel(config)
@@ -100,17 +100,22 @@ def run_training(config):
         # Initialize variables
         sess.run(init_op)
         # Logs and model checkpoint paths defined in config
+        # TODO: change log path every run to keep historical run data
         writer = tf.summary.FileWriter(config.log_path, sess.graph)
         saver = tf.train.Saver()
         for epoch_idx in range(config.num_epochs):
             # Training
             epoch_train_start = time.time()
             num_train_steps = 0
+            sess.run(train_iterator.initializer)
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
                     image_batch, label_batch = sess.run(train_batch)
-                    _, mse = sess.run([model.optimize, model.mse], feed_dict={model.image: image_batch,
-                                                                              model.label: label_batch})
+                    _, mse, _ = sess.run([model.optimize,
+                                          model.mse,
+                                          model.train_mode], feed_dict={model.image: image_batch,
+                                                                        model.label: label_batch,
+                                                                        model.train_mode: True})
                     num_train_steps += 1
             except tf.errors.OutOfRangeError:
                 epoch_train_duration = time.time() - epoch_train_start
@@ -118,21 +123,25 @@ def run_training(config):
                                                                                epoch_train_duration,
                                                                                num_train_steps,
                                                                                mse))
-                if config.save_model:
+                if config.save_model and ((epoch_idx + 1) % config.save_every_n_epochs) == 0:
                     save_path = saver.save(sess, config.checkpoint_path)
                     print('Model checkpoint saved at %s' % save_path)
             # Testing
             epoch_test_start = time.time()
+            sess.run(test_iterator.initializer)
             try:
                 image_batch, label_batch = sess.run(test_batch)
-                mse, summary = sess.run([model.mse, merged_summary_op], feed_dict={model.image: image_batch,
-                                                                                   model.label: label_batch})
-                writer.add_summary(summary, epoch_idx)
+                mse, _, summary = sess.run([model.mse,
+                                            model.test_loss,
+                                            merged_summary_op], feed_dict={model.image: image_batch,
+                                                                           model.label: label_batch,
+                                                                           model.train_mode: False})
             except tf.errors.OutOfRangeError:
                 epoch_test_duration = time.time() - epoch_test_start
                 print('Epoch %d: Testing (%.3f sec) - acc: %.2f' % (epoch_idx,
                                                                     epoch_test_duration,
                                                                     mse))
+            writer.add_summary(summary, (epoch_idx + 1))
         writer.close()
 
 
