@@ -49,29 +49,33 @@ def _image_prep(image, label):
             image = tf.image.rgb_to_grayscale(image)
         # Standardize the images
         image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
+        # Standardize the labels
+        label = tf.cast(label, tf.float32) * (1. / 100) - 0.5
     return image, label
 
 
-def _train_iterator():
+def _train_feed():
     with tf.name_scope('train_input'):
         dataset = tf.data.TFRecordDataset(config.train_tfrecord_path)
+        dataset = dataset.take(config.num_train_examples)
         dataset = dataset.map(_decode)
         dataset = dataset.map(_image_augmentation)
         dataset = dataset.map(_image_prep)
         dataset = dataset.shuffle(config.buffer_size)
         dataset = dataset.batch(config.batch_size)
         iterator = dataset.make_one_shot_iterator()
-    return iterator, dataset
+    return iterator.get_next()
 
 
-def _test_iterator():
+def _test_feed():
     with tf.name_scope('test_input'):
         dataset = tf.data.TFRecordDataset(config.test_tfrecord_path)
         dataset = dataset.take(config.num_test_examples)
         dataset = dataset.map(_decode)
         dataset = dataset.map(_image_prep)
+        dataset = dataset.batch(config.num_test_examples)
         iterator = dataset.make_one_shot_iterator()
-    return iterator, dataset
+    return iterator.get_next()
 
 
 def run_training(config):
@@ -79,19 +83,11 @@ def run_training(config):
         Train gaze_trainer for the given number of steps.
     """
     # train and test iterators, need dataset to create feedable iterator
-    train_iterator, train_dataset = _train_iterator()
-    test_iterator, _ = _test_iterator()
-
-    # Feedable iterator
-    handle = tf.placeholder(tf.string, shape=[])
-    iterator = tf.data.Iterator.from_string_handle(handle,
-                                                   train_dataset.output_types,
-                                                   train_dataset.output_shapes)
-    next_element = iterator.get_next()
+    train_batch = _train_feed()
+    test_batch = _test_feed()
 
     # Get images and labels from iterator, create model from class
-    image_batch, label_batch = next_element
-    model = GazeModel(image_batch, label_batch, config)
+    model = GazeModel(config)
 
     # The op for initializing the variables.
     init_op = tf.group(tf.global_variables_initializer(),
@@ -108,13 +104,13 @@ def run_training(config):
         saver = tf.train.Saver()
         for epoch_idx in range(config.num_epochs):
             # Training
-            train_handle = sess.run(train_iterator.string_handle())
             epoch_train_start = time.time()
             num_train_steps = 0
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
-                    sess.run(next_element, feed_dict={handle: train_handle})
-                    _, mse = sess.run([model.optimize, model.mse])
+                    image_batch, label_batch = sess.run(train_batch)
+                    _, mse = sess.run([model.optimize, model.mse], feed_dict={model.image: image_batch,
+                                                                              model.label: label_batch})
                     num_train_steps += 1
             except tf.errors.OutOfRangeError:
                 epoch_train_duration = time.time() - epoch_train_start
@@ -126,11 +122,11 @@ def run_training(config):
                     save_path = saver.save(sess, config.checkpoint_path)
                     print('Model checkpoint saved at %s' % save_path)
             # Testing
-            test_handle = sess.run(test_iterator.string_handle())
             epoch_test_start = time.time()
-            try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
-                sess.run(next_element, feed_dict={handle: test_handle})
-                mse, summary = sess.run([model.mse, merged_summary_op])
+            try:
+                image_batch, label_batch = sess.run(test_batch)
+                mse, summary = sess.run([model.mse, merged_summary_op], feed_dict={model.image: image_batch,
+                                                                                   model.label: label_batch})
                 writer.add_summary(summary, epoch_idx)
             except tf.errors.OutOfRangeError:
                 epoch_test_duration = time.time() - epoch_test_start

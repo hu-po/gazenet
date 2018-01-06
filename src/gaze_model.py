@@ -15,10 +15,15 @@ The output:
 
 class GazeModel(object):
 
-    def __init__(self, image, label, config):
-        self.image = image
-        self.label = label
+    def __init__(self, config):
         self.config = config
+        if config.grayscale:
+            self.config.image_channels = 1
+        self.image = tf.placeholder(tf.float32, shape=(None,
+                                                       config.image_width,
+                                                       config.image_height,
+                                                       config.image_channels))
+        self.label = tf.placeholder(tf.float32, shape=(None, 2))
         self.predict = self.predict_func()
         self.mse = self.mse_func()
         self.optimize = self.optimize_func()

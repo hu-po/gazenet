@@ -30,6 +30,8 @@ contrast_upper = 0.2
 # ============ #
 num_epochs = 10
 batch_size = 16
+# Number of train examples (if you want to limit training data)
+num_train_examples = 1000
 # Number of test examples in each validation step
 num_test_examples = 100
 # Bigger buffer means better shuffling but slower start up and more memory used.
