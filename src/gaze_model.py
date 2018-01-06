@@ -20,8 +20,8 @@ class GazeModel(object):
         self.label = label
         self.config = config
         self.predict = self.predict_func()
+        self.mse = self.mse_func()
         self.optimize = self.optimize_func()
-        self.accuracy = self.accuracy_func()
 
     def predict_func(self):
         with tf.variable_scope('predict', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
@@ -34,20 +34,16 @@ class GazeModel(object):
             x = slim.flatten(x)
             x = slim.fully_connected(x, 128)
             x = slim.fully_connected(x, 64)
-            x = slim.fully_connected(x, self.config['output_classes'], tf.nn.softmax)
+            x = slim.fully_connected(x, 2)
         return x
 
     def optimize_func(self):
         with tf.variable_scope('optimize', reuse=tf.AUTO_REUSE):
-            loss = tf.losses.sparse_softmax_cross_entropy(labels=self.label, logits=self.predict)
-            tf.summary.scalar('loss', loss)
-            optimizer = tf.train.RMSPropOptimizer(self.config['learning_rate'])
-        return optimizer.minimize(loss)
+            optimizer = tf.train.RMSPropOptimizer(self.config.learning_rate)
+        return optimizer.minimize(self.mse)
 
-    def accuracy_func(self):
-        with tf.variable_scope('accuracy', reuse=tf.AUTO_REUSE):
-            predicted_label = tf.cast(tf.argmax(self.predict, 1), tf.int32)
-            mistakes = tf.not_equal(self.label, predicted_label)
-            accuracy = tf.reduce_mean(tf.cast(mistakes, tf.float32))
-            tf.summary.scalar('accuracy', accuracy)
-        return accuracy
+    def mse_func(self):
+        with tf.variable_scope('mse', reuse=tf.AUTO_REUSE):
+            mse = tf.losses.mean_squared_error(labels=self.label, predictions=self.predict)
+            tf.summary.scalar('mse', mse)
+        return mse

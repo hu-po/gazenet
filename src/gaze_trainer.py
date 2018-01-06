@@ -28,80 +28,74 @@ def _decode(serialized_example):
     gaze_y = tf.cast(features['gaze_y'], tf.int32)
     target = [gaze_x, gaze_y]
     image = tf.decode_raw(features['image_raw'], tf.uint8)
-    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels])
+    image_shape = tf.stack([config.image_width, config.image_height, config.image_channels])
     image = tf.reshape(image, image_shape)
     return image, target
 
 
+def _image_augmentation(image, label):
+    with tf.name_scope('image_augment'):
+        # Apply image adjustments to reduce overfitting
+        if config.random_brigtness:
+            image = tf.image.random_brightness(image, config.brightnes_max_delta)
+        if config.random_contrast:
+            image = tf.image.random_contrast(image, config.contrast_lower, config.contrast_upper)
+    return image, label
+
+
 def _image_prep(image, label):
-    with tf.name_scope('image prep'):
+    with tf.name_scope('image_prep'):
         if config.grayscale:
             image = tf.image.rgb_to_grayscale(image)
-        # Apply image adjustments to reduce overfitting
-        image = tf.image.random_brightness(image)
-        image = tf.image.random_contrast(image)
-        image = tf.image.random_hue(image)
-        image = tf.image.random_saturation(image)
-        # Normalize images
+        # Standardize the images
         image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
     return image, label
 
-def build_training_dataset(dataset_name, batch_size, buffer_size):
-    filename = os.path.join(config.data_dir, dataset_name, 'train.tfrecords')
+
+def _train_iterator():
     with tf.name_scope('train_input'):
-        dataset = tf.data.TFRecordDataset(filename)
+        dataset = tf.data.TFRecordDataset(config.train_tfrecord_path)
+        dataset = dataset.map(_decode)
+        dataset = dataset.map(_image_augmentation)
+        dataset = dataset.map(_image_prep)
+        dataset = dataset.shuffle(config.buffer_size)
+        dataset = dataset.batch(config.batch_size)
+        iterator = dataset.make_one_shot_iterator()
+    return iterator, dataset
+
+
+def _test_iterator():
+    with tf.name_scope('test_input'):
+        dataset = tf.data.TFRecordDataset(config.test_tfrecord_path)
+        dataset = dataset.take(config.num_test_examples)
         dataset = dataset.map(_decode)
         dataset = dataset.map(_image_prep)
-        dataset = dataset.shuffle(buffer_size)
-        dataset = dataset.batch(batch_size)
-    return dataset
+        iterator = dataset.make_one_shot_iterator()
+    return iterator, dataset
 
 
-def build_validation_dataset(dataset_name, batch_size, buffer_size):
-    filename = os.path.join(DATA_DIR, dataset_name, 'test.tfrecords')
-    with tf.name_scope('test_input'):
-        dataset = tf.data.TFRecordDataset(filename)
-        dataset = dataset.map(decode)
-        dataset = dataset.map(normalize)
-        dataset = dataset.shuffle(buffer_size)
-        dataset = dataset.batch(batch_size)
-    return dataset
-
-
-def create_iterators(training_dataset, validation_dataset):
-    # Datasets should both have the same structure
-    iterator = tf.data.Iterator.from_structure(training_dataset.output_types,
-                                               training_dataset.output_shapes)
-    # Reinitializable iterator.
-    next_element = iterator.get_next()
-    # Create the initializers for both test and train datasets
-    train_init_op = iterator.make_initializer(training_dataset)
-    val_init_op = iterator.make_initializer(validation_dataset)
-    return next_element, train_init_op, val_init_op
-
-
-def run_training(dataset_name, batch_size, buffer_size, num_epochs):
+def run_training(config):
     """
         Train gaze_trainer for the given number of steps.
     """
+    # train and test iterators, need dataset to create feedable iterator
+    train_iterator, train_dataset = _train_iterator()
+    test_iterator, _ = _test_iterator()
 
-    # Training and validation datasets
-    training_dataset = build_training_dataset(dataset_name, batch_size, buffer_size)
-    validation_dataset = build_validation_dataset(dataset_name, batch_size, buffer_size)
-
-    # Input images and labels for training
-    next_element, train_init_op, val_init_op = create_iterators(training_dataset, validation_dataset)
-
-    # Model requires some configs
-    config = {'output_classes': OUTPUT_CLASSES,
-              'learning_rate': FLAGS.learning_rate}
+    # Feedable iterator
+    handle = tf.placeholder(tf.string, shape=[])
+    iterator = tf.data.Iterator.from_string_handle(handle,
+                                                   train_dataset.output_types,
+                                                   train_dataset.output_shapes)
+    next_element = iterator.get_next()
 
     # Get images and labels from iterator, create model from class
     image_batch, label_batch = next_element
     model = GazeModel(image_batch, label_batch, config)
 
     # The op for initializing the variables.
-    init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+    init_op = tf.group(tf.global_variables_initializer(),
+                       tf.local_variables_initializer())
 
     # Merge all summary ops for saving during training
     merged_summary_op = tf.summary.merge_all()
@@ -109,84 +103,46 @@ def run_training(dataset_name, batch_size, buffer_size, num_epochs):
     with tf.Session() as sess:
         # Initialize variables
         sess.run(init_op)
-        # Write logs to path
-        log_filename = os.path.join(LOG_DIR, DATASET_NAME)
-        writer = tf.summary.FileWriter(log_filename, sess.graph)
-        # Write model checkpoints
-        model_filename = os.path.join(MODEL_DIR, DATASET_NAME)
+        # Logs and model checkpoint paths defined in config
+        writer = tf.summary.FileWriter(config.log_path, sess.graph)
         saver = tf.train.Saver()
-        for epoch_idx in range(num_epochs):
-            # Training Step
-            sess.run(train_init_op)
+        for epoch_idx in range(config.num_epochs):
+            # Training
+            train_handle = sess.run(train_iterator.string_handle())
             epoch_train_start = time.time()
             num_train_steps = 0
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
-                    sess.run(next_element)
-                    _, acc = sess.run([model.optimize, model.accuracy])
+                    sess.run(next_element, feed_dict={handle: train_handle})
+                    _, mse = sess.run([model.optimize, model.mse])
                     num_train_steps += 1
             except tf.errors.OutOfRangeError:
                 epoch_train_duration = time.time() - epoch_train_start
-                print('Training: Epoch %d (%.3f sec) - %d steps' % (epoch_idx, epoch_train_duration, num_train_steps))
-                print('        -- Accuracy %.2f ' % acc)
-                # Save model
-                save_path = saver.save(sess, model_filename)
-                print('Model checkpoint saved at %s' % save_path)
-            # Validation Step
-            sess.run(val_init_op)
-            epoch_val_start = time.time()
-            num_val_steps = 0
+                print('Epoch %d: Training (%.3f sec)(%d steps) - mse: %.2f' % (epoch_idx,
+                                                                               epoch_train_duration,
+                                                                               num_train_steps,
+                                                                               mse))
+                if config.save_model:
+                    save_path = saver.save(sess, config.checkpoint_path)
+                    print('Model checkpoint saved at %s' % save_path)
+            # Testing
+            test_handle = sess.run(test_iterator.string_handle())
+            epoch_test_start = time.time()
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
-                while True:
-                    sess.run(next_element)
-                    acc, summary = sess.run([model.accuracy, merged_summary_op])
-                    writer.add_summary(summary, epoch_idx)
-                    num_val_steps += 1
+                sess.run(next_element, feed_dict={handle: test_handle})
+                mse, summary = sess.run([model.mse, merged_summary_op])
+                writer.add_summary(summary, epoch_idx)
             except tf.errors.OutOfRangeError:
-                epoch_val_duration = time.time() - epoch_val_start
-                print('Validation: Epoch %d (%.3f sec) - %d steps' % (epoch_idx, epoch_val_duration, num_val_steps))
-                print('        -- Accuracy %.2f ' % acc)
+                epoch_test_duration = time.time() - epoch_test_start
+                print('Epoch %d: Testing (%.3f sec) - acc: %.2f' % (epoch_idx,
+                                                                    epoch_test_duration,
+                                                                    mse))
         writer.close()
 
 
-def main(_):
-    run_training(dataset_name=FLAGS.dataset,
-                 batch_size=FLAGS.batch_size,
-                 buffer_size=FLAGS.buffer_size,
-                 num_epochs=FLAGS.num_epochs)
+def main():
+    run_training(config)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--learning_rate',
-        type=float,
-        default=LEARNING_RATE,
-        help='Initial learning rate.'
-    )
-    parser.add_argument(
-        '--num_epochs',
-        type=int,
-        default=NUM_EPOCHS,
-        help='Number of epochs to run trainer.'
-    )
-    parser.add_argument(
-        '--buffer_size',
-        type=int,
-        default=BUFFER_SIZE,
-        help='Buffer size when shuffling batches'
-    )
-    parser.add_argument(
-        '--batch_size',
-        type=int,
-        default=BATCH_SIZE,
-        help='Batch size when running trainer.'
-    )
-    parser.add_argument(
-        '--dataset',
-        type=str,
-        default=DATASET_NAME,
-        help='Dataset name to train on.'
-    )
-    FLAGS, unparsed = parser.parse_known_args()
-    tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+    main()
