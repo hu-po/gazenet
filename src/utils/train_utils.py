@@ -1,7 +1,3 @@
-import os
-import sys
-import time
-import datetime
 import tensorflow as tf
 
 '''
@@ -26,13 +22,28 @@ def config_checker(config_properties):
         return wrapped
     return decorator
 
+@config_checker(['image_height', 'image_width', 'image_channels'])
+def decode_image(serialized_example, config=None):
+    """
+    Decodes a serialized example for an image
+    :param serialized_example: (parsed string Tensor) serialized example
+    :param config: (Config) config object
+    :return: image Tensor
+    """
+    features = tf.parse_single_example(
+        serialized_example,
+        features={'image_raw': tf.FixedLenFeature([], tf.string)})
+    image = tf.decode_raw(features['image_raw'], tf.uint8)
+    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels])
+    image = tf.reshape(image, image_shape)
+    return image
 
 @config_checker(['image_height', 'image_width', 'image_channels'])
 def decode_gaze(serialized_example, config=None):
     """
     Decodes a serialized example for gaze images and labels
     :param serialized_example: (parsed string Tensor) serialized example
-    :param config: config namespace
+    :param config: (Config) config object
     :return: image and target Tensors
     """
     features = tf.parse_single_example(

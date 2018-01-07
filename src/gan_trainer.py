@@ -9,83 +9,60 @@ sys.path.append(mod_path)
 
 from src.discriminator_model import DiscriminatorModel
 from src.refiner_model import RefinerModel
-import src.gan_config as config
+import src.utils.train_utils as train_utils
 
 '''
 This file is used to train the GAN, which is composed of a refiner net and a 
  discriminator net. It follows Algorithm 1 in [1].
 '''
 
-
-def _decode(serialized_example):
-    features = tf.parse_single_example(
-        serialized_example,
-        features={
-            'gaze_x': tf.FixedLenFeature([], tf.int64),
-            'gaze_y': tf.FixedLenFeature([], tf.int64),
-            'image_raw': tf.FixedLenFeature([], tf.string),
-        })
-    gaze_x = tf.cast(features['gaze_x'], tf.int32)
-    gaze_y = tf.cast(features['gaze_y'], tf.int32)
-    target = [gaze_x, gaze_y]
-    image = tf.decode_raw(features['image_raw'], tf.uint8)
-    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels])
-    image = tf.reshape(image, image_shape)
-    return image, target
-
-
-def _image_augmentation(image, label):
-    with tf.name_scope('image_augment'):
-        # Apply image adjustments to reduce overfitting
-        if config.random_brigtness:
-            image = tf.image.random_brightness(image, config.brightnes_max_delta)
-        if config.random_contrast:
-            image = tf.image.random_contrast(image, config.contrast_lower, config.contrast_upper)
-    return image, label
-
-
-def _image_prep(image, label):
-    with tf.name_scope('image_prep'):
-        if config.grayscale:
-            image = tf.image.rgb_to_grayscale(image)
-        # Standardize the images
-        image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
-        # Standardize the labels
-        label = tf.cast(label, tf.float32) * (1. / 100) - 0.5
-    return image, label
-
-
-def _train_feed():
+@train_utils.config_checker(['num_train_examples',
+                             'train_tfrecord_path',
+                             'buffer_size',
+                             'batch_size'])
+def _train_feed(config=None):
     with tf.name_scope('train_input'):
         dataset = tf.data.TFRecordDataset(config.train_tfrecord_path)
         dataset = dataset.take(config.num_train_examples)
-        dataset = dataset.map(_decode)
-        dataset = dataset.map(_image_augmentation)
-        dataset = dataset.map(_image_prep)
+        dataset = dataset.map(lambda x: train_utils.decode_gaze(x, config=config))
+        dataset = dataset.map(lambda i, t: train_utils.image_augmentation(i, t, config=config))
+        dataset = dataset.map(lambda i, t: train_utils.grayscale(i, t, config=config))
+        dataset = dataset.map(lambda i, t: train_utils.standardize(i, t, config=config))
         dataset = dataset.shuffle(config.buffer_size)
         dataset = dataset.batch(config.batch_size)
         iterator = dataset.make_initializable_iterator()
     return iterator, iterator.get_next()
 
 
-def _test_feed():
+@train_utils.config_checker(['num_test_examples',
+                             'test_tfrecord_path',
+                             'buffer_size',
+                             'batch_size'])
+def _test_feed(config=None):
     with tf.name_scope('test_input'):
         dataset = tf.data.TFRecordDataset(config.test_tfrecord_path)
         dataset = dataset.take(config.num_test_examples)
-        dataset = dataset.map(_decode)
-        dataset = dataset.map(_image_prep)
+        dataset = dataset.map(lambda x: train_utils.decode_gaze(x, config=config))
+        dataset = dataset.map(lambda i, t: train_utils.grayscale(i, t, config=config))
+        dataset = dataset.map(lambda i, t: train_utils.standardize(i, t, config=config))
         dataset = dataset.batch(config.num_test_examples)
         iterator = dataset.make_initializable_iterator()
     return iterator, iterator.get_next()
 
 
-def run_training():
+@train_utils.config_checker(['log_path',
+                             'checkpoint_path',
+                             'num_epochs',
+                             'save_model',
+                             'save_every_n_epochs',
+                             'num_epochs'])
+def run_training(config=None):
     """
         Train gaze_trainer for the given number of steps.
     """
     # train and test iterators, need dataset to create feedable iterator
-    train_iterator, train_batch = _train_feed()
-    test_iterator, test_batch = _test_feed()
+    train_iterator, train_batch = _train_feed(config=config)
+    test_iterator, test_batch = _test_feed(config=config)
 
     # Get images and labels from iterator, create model from class
     model = GazeModel(config)
@@ -154,7 +131,8 @@ def run_training():
 
 
 def main():
-    run_training()
+    import src.gan_config as config
+    run_training(config=config)
 
 
 if __name__ == '__main__':

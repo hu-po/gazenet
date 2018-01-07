@@ -1,41 +1,38 @@
 import os
 
 '''
-This python file defines parameters used to train the gaze models.
+This python file defines parameters used to train the GAN (refiner and discriminator nets)
 '''
 
 # =========== #
 #   Dataset   #
 # =========== #
-dataset_name = '04012018_headlook'
-# Image file names are regexed to get targets
-dataset_regex = '(\d.\d+)_(\d.\d+).png'
-train_test_split = 0.95
+synthetic_dataset = '04012018_headlook'
+real_dataset = '070118_real'
+# Clip the dataset sizes
+num_synth_images = 5000
+num_real_images = 100
+# Image dimensions
 image_width = 128
 image_height = 96
 image_channels = 3
 # Grayscale images are quicker, and depending on problem color is not important
 grayscale = True
-# Brightness Augmentation
-random_brigtness = True
-brightnes_max_delta = 0.1
-# Contrast Augmentation
-random_contrast = True
-contrast_lower = 0.01
-contrast_upper = 0.2
 
 # ============ #
 #   Training   #
 # ============ #
-num_epochs = 400
-batch_size = 16
-# Number of train examples (if you want to limit training data)
-num_train_examples = 6000
-# Number of test examples in each validation step
-num_test_examples = 16
+num_training_steps = 400
+num_refiner_steps = 50  # Kg
+num_discriminator_steps = 1  # Kd
+
+synth_batch_size = 16
+real_batch_size = 16
+
 # Bigger buffer means better shuffling but slower start up and more memory used.
 buffer_size = 100
 learning_rate = 0.01
+
 # Save model checkpoint
 save_model = True
 save_every_n_epochs = 50
