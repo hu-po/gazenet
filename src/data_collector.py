@@ -6,7 +6,7 @@ import sys
 
 mod_path = os.path.abspath(os.path.join('..'))
 sys.path.append(mod_path)
-from src.config import DATA_DIR
+from src.gaze_config import DATA_DIR
 
 '''
 This python file collects gaze data using the webcamera.

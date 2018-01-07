@@ -28,21 +28,20 @@ contrast_upper = 0.2
 # ============ #
 #   Training   #
 # ============ #
-num_epochs = 10
+num_epochs = 400
 batch_size = 16
 # Number of train examples (if you want to limit training data)
 num_train_examples = 1000
 # Number of test examples in each validation step
 num_test_examples = 16
 # Bigger buffer means better shuffling but slower start up and more memory used.
-buffer_size = 300
+buffer_size = 100
 learning_rate = 0.01
 # Save model checkpoint
 save_model = True
-save_every_n_epochs = 3
+save_every_n_epochs = 50
 # Model dropout
-dropout_keep_prob=0.8
-
+dropout_keep_prob = 0.8
 
 # ============== #
 #    Directory   #
