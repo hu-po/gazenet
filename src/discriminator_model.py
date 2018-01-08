@@ -31,7 +31,7 @@ class DiscriminatorModel(BaseModel):
         config.optimizer_type = config.discriminator_optimizer_type
         super().__init__(config=config)  # Real image placeholder defined in base model
         self.label = tf.placeholder(tf.int32, shape=(None,), name='true_real_or_fake')
-        self.predicted = tf.placeholder(tf.float32, shape=(None,), name='pred_real_or_fake')
+        self.pred = tf.placeholder(tf.float32, shape=(None,), name='pred_real_or_fake')
         with tf.variable_scope('discriminator_model'):
             self.predict = self.model(config=config)
             self.loss = self.discriminator_loss()
@@ -55,7 +55,7 @@ class DiscriminatorModel(BaseModel):
 
     def discriminator_loss(self):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
-            loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.predicted,
+            loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.pred,
                                                            labels=self.label)
             tf.summary.scalar('loss', loss)
         return loss
