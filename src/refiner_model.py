@@ -1,5 +1,13 @@
+import os
+import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(mod_path)
+
+import src.utils.base_utils as base_utils
+from src.base_model import BaseModel
 
 '''
 
@@ -13,13 +21,20 @@ The output:
 
 '''
 
-class RefinerModel(object):
 
-    def __init__(self, config):
-        self.config=config
+class RefinerModel(BaseModel):
+
+    @base_utils.config_checker()
+    def __init__(self, config=None):
+        super().__init__(config=config)
+        with tf.variable_scope('discriminator_model'):
+            self.predict = self.predict_func()
+
+    def predict_func(self):
+        with tf.variable_scope('predict', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
+            x = self.image
+            tf.summary.image('input_image', x)
+        return x
 
     def refiner_loss(self):
-        pass
-
-    def discrim_loss(self):
         pass

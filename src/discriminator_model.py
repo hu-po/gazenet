@@ -1,5 +1,13 @@
+import os
+import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(mod_path)
+
+import src.utils.base_utils as base_utils
+from src.base_model import BaseModel
 
 '''
 
@@ -15,23 +23,13 @@ The output:
 '''
 
 
-class DiscriminatorModel(object):
+class DiscriminatorModel(BaseModel):
 
-    def __init__(self, config):
-        self.config = config
-        if config.grayscale:
-            self.config.image_channels = 1
-        self.image = tf.placeholder(tf.float32, shape=(None,
-                                                       config.image_height,
-                                                       config.image_width,
-                                                       config.image_channels),
-                                    name='input_image')
-        self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
-        self.train_mode = tf.placeholder(tf.bool, shape=[], name='train_mode_switch')
-        # Initialize properties
+    @base_utils.config_checker()
+    def __init__(self, config=None):
+        super().__init__(config=config)
         with tf.variable_scope('discriminator_model'):
             self.predict = self.predict_func()
-
 
     def predict_func(self):
         with tf.variable_scope('predict', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):

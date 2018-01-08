@@ -1,5 +1,13 @@
+import os
+import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(mod_path)
+
+import src.utils.base_utils as base_utils
+from src.base_model import BaseModel
 
 '''
 This network outputs the gaze location for a given webcam image.
@@ -14,20 +22,13 @@ The output:
 '''
 
 
-class GazeModel(object):
+class GazeModel(BaseModel):
 
-    def __init__(self, config):
-        self.config = config
-        if config.grayscale:
-            self.config.image_channels = 1
-        self.image = tf.placeholder(tf.float32, shape=(None,
-                                                       config.image_height,
-                                                       config.image_width,
-                                                       config.image_channels),
-                                    name='input_image')
+    @base_utils.config_checker()
+    def __init__(self, config=None):
+        super().__init__(config=config)
         self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
         self.train_mode = tf.placeholder(tf.bool, shape=[], name='train_mode_switch')
-        # Initialize properties
         with tf.variable_scope('gaze_model'):
             self.predict = self.predict_func()
             self.mse = self.mse_func()
