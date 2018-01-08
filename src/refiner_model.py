@@ -25,7 +25,7 @@ class RefinerModel(BaseModel):
         super().__init__(config=config)
         self.pred = tf.placeholder(tf.float32, shape=(None,), name='pred_label')
         with tf.variable_scope('discriminator_model'):
-            self.predict = self.model()
+            self.predict = self.model(config=config)
             self.optimize = self.optimizer(config=config)
 
     @base_utils.config_checker(['refiner_initializer'])

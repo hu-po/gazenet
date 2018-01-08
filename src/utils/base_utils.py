@@ -119,6 +119,6 @@ def image_to_tfrecords(config=None):
     real_image_paths = glob.glob(os.path.join(config.real_dataset_path, '*.png'))
     print('There are %d real images and %d synthetic images' % (len(real_image_paths),
                                                                 len(synth_image_paths)))
-    # Write train and test tfrecords to paths in config
+    # Write synthetic and real tfrecords to paths in config
     _write_image_tfrecord(config.synth_tfrecord_path, synth_image_paths, config=config)
     _write_image_tfrecord(config.real_tfrecord_path, real_image_paths, config=config)

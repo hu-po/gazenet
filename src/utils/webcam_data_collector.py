@@ -6,18 +6,19 @@ import cv2
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-from src.config.gaze_config import data_dir
+from src.config.base_config import BaseConfig
 
 '''
 This python file collects unlabeled real gaze images using the webcamera.
 '''
 
-# Dataset parameters
-DATASET_NAME = '070118_real'
-NUM_IMAGES = 10
+# Config is just a base config plus some extra
+config = BaseConfig()
+DATASET_NAME = '080118_real'
+NUM_IMAGES = 100
 
 # Create local data dir
-dataset_dir = os.path.join(data_dir, DATASET_NAME)
+dataset_dir = os.path.join(config.data_dir, DATASET_NAME)
 if not os.path.exists(dataset_dir):
     os.mkdir(dataset_dir)
 
@@ -34,7 +35,7 @@ for i in range(NUM_IMAGES):
     # cv2.imshow('Video', frame)
     # cv2.waitKey()
     # Save image
-    filename = '%s.jpg' % i
+    filename = '%s.png' % i
     cv2.imwrite(os.path.join(dataset_dir, filename), frame)
     # Delete camera object to reset buffer
     del webcam

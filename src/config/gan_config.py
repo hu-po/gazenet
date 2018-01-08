@@ -13,27 +13,27 @@ class GANConfig(BaseConfig):
         super().__init__(run_name='gan')
         # GAN needs two input datasets and will create an output dataset
         self.synth_dataset_name = '04012018_headlook'
-        self.real_dataset_name = '070118_real'
+        self.real_dataset_name = '080118_real'
         # Clip the dataset sizes
-        self.num_synth_images = 5000
-        self.num_real_images = 100
+        self.num_synth_images = 100
+        self.num_real_images = 10
 
         # Training parameters (from Algorithm 1 in [1])
-        self.num_training_steps = 400  # T
-        self.num_refiner_steps = 50  # Kg
+        self.num_training_steps = 5  # T
+        self.num_refiner_steps = 1  # Kg
         self.num_discrim_steps = 1  # Kd
-        self.synth_batch_size = 16
-        self.real_batch_size = 16
-        self.discrim_batch_size = 16
+        self.synth_batch_size = 2
+        self.real_batch_size = 2
+        self.discrim_batch_size = 2
         # Bigger buffer means better shuffling but slower start up and more memory used.
-        self.synth_buffer_size = 100
-        self.real_buffer_size = 100
+        self.synth_buffer_size = 4
+        self.real_buffer_size = 4
         # Log saving every n steps
         self.discrim_summary_every_n_steps = 50
         self.refiner_summary_every_n_steps = 50
         # Save model checkpoint
         self.save_model = True
-        self.save_every_n_steps = 50
+        self.save_every_n_train_steps = 50
 
         # Refiner Model
         self.refiner_initializer = slim.xavier_initializer()
