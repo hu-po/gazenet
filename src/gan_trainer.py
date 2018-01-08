@@ -6,7 +6,7 @@ import tensorflow as tf
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-from src.discriminator_model import DiscriminatorModel
+from src.discrim_model import DiscriminatorModel
 from src.refiner_model import RefinerModel
 from src.config.gan_config import GANConfig
 import src.utils.train_utils as train_utils
@@ -27,7 +27,7 @@ def _synth_feed(config=None):
         dataset = dataset.map(lambda x: train_utils.decode_image(x, config=config))
         dataset = dataset.map(lambda i: train_utils.grayscale(i, config=config))
         dataset = dataset.map(lambda i: train_utils.standardize(i, config=config))
-        dataset = dataset.repeat() # Repeat dataset indefinitely
+        dataset = dataset.repeat()  # Repeat dataset indefinitely
         dataset = dataset.shuffle(config.synth_buffer_size)
         dataset = dataset.batch(config.synth_batch_size)
         iterator = dataset.make_initializable_iterator()
@@ -43,7 +43,7 @@ def _real_feed(config=None):
         dataset = dataset.map(lambda x: train_utils.decode_image(x, config=config))
         dataset = dataset.map(lambda i: train_utils.grayscale(i, config=config))
         dataset = dataset.map(lambda i: train_utils.standardize(i, config=config))
-        dataset = dataset.repeat() # Repeat dataset indefinitely
+        dataset = dataset.repeat()  # Repeat dataset indefinitely
         dataset = dataset.shuffle(config.real_buffer_size)
         dataset = dataset.batch(config.real_batch_size)
         iterator = dataset.make_initializable_iterator()
@@ -54,7 +54,10 @@ def _real_feed(config=None):
                              'checkpoint_path',
                              'num_training_steps',
                              'num_refiner_steps',
-                             'num_discriminator_steps',
+                             'refiner_summary_every_n_steps',
+                             'num_discrim_steps',
+                             'discrim_summary_every_n_steps',
+                             'discrim_batch_size',
                              'save_model',
                              'save_every_n_train_steps'])
 def run_training(config=None):
@@ -64,7 +67,7 @@ def run_training(config=None):
 
     # Get images and labels from iterator, create model from class
     refiner_model = RefinerModel(config=config)
-    discriminator_model = DiscriminatorModel(config=config)
+    discrim_model = DiscriminatorModel(config=config)
 
     # The op for initializing the variables.
     init_op = tf.group(tf.global_variables_initializer(),
@@ -77,7 +80,8 @@ def run_training(config=None):
         # Initialize variables
         sess.run(init_op)
         # Logs and model checkpoint paths defined in config
-        writer = tf.summary.FileWriter(config.log_path, sess.graph)
+        refiner_writer = tf.summary.FileWriter(config.refiner_log_path, sess.graph)
+        discrim_writer = tf.summary.FileWriter(config.discrim_log_path, sess.graph)
         saver = tf.train.Saver()
         # Initalize both datasets (they repeat forever, so only need this once)
         sess.run(real_iterator.initializer)
@@ -85,22 +89,51 @@ def run_training(config=None):
         for train_step in range(config.num_training_steps):
             refiner_step_start = time.time()
             for refiner_step in range(config.num_refiner_steps):
-                synth_image_batch = sess.run(synth_batch)
-
+                # Get a batch of synthetic images
+                synth_image = sess.run(synth_batch)
+                # Feed the synthetic images through the refiner, producing refined images
+                refined_image = sess.run([refiner_model.predict],
+                                         feed_dict={'image': synth_image})
+                # Feed the refined images through the discriminator to get predicted labels (fake or real?)
+                pred_label = sess.run([discrim_model.predict],
+                                      feed_dict={'image': refined_image})
+                # Feed the predicted labels back through the refiner model to train refiner
+                # TODO: This leads to double-evaluation of the synthetic image batch, how to improve?
+                _, refiner_summary = sess.run([refiner_model.optimize,
+                                               merged_summary_op],
+                                              feed_dict={'pred_label': pred_label,
+                                                         'image': synth_image})
+                if refiner_step % config.refiner_summary_every_n_steps == 0:
+                    num_steps_elapsed = train_step * config.num_refiner_steps + refiner_step
+                    refiner_writer.add_summary(refiner_summary, num_steps_elapsed)
             refiner_step_duration = time.time() - refiner_step_start
-
-
-            discriminator_step_start = time.time()
-            for discriminator_step in range(config.num_discriminator_steps):
-                synth_image_batch = sess.run(synth_batch)
-                real_image_batch = sess.run(real_batch)
-
-            discriminator_step_duration = time.time() - discriminator_step_start
-            print('Step %d : refiner (%.3f sec) and discriminator (%.3f sec)' % (train_step,
-                                                                                 refiner_step_duration,
-                                                                                 discriminator_step_duration))
-            writer.add_summary(summary, train_step)
-        writer.close()
+            discrim_step_start = time.time()
+            for discrim_step in range(config.num_discrim_steps):
+                synth_image = sess.run(synth_batch)
+                real_image = sess.run(real_batch)
+                # Feed synthetic images through refiner network
+                refined_image = sess.run([refiner_model.predict], feed_dict={'image': synth_image})
+                # Shuffle together refined synthetic and real images in batch
+                combined_images = tf.concat([real_image, refined_image], axis=0)
+                combined_labels = tf.concat([tf.ones_like(real_image),
+                                             tf.zeros_like(refined_image)], axis=0)
+                mixed_image, mixed_label = tf.train.shuffle_batch([combined_images, combined_labels],
+                                                                  batch_size=config.discrim_batch_size)
+                # Train discriminator network using mixed images
+                _, discrim_summary = sess.run([discrim_model.optimize,
+                                               merged_summary_op],
+                                              feed_dict={'label': mixed_label,
+                                                         'image': mixed_image})
+                if discrim_step % config.discrim_summary_every_n_steps == 0:
+                    num_steps_elapsed = train_step * config.num_discrim_steps + discrim_step
+                    discrim_writer.add_summary(discrim_summary, num_steps_elapsed)
+                discrim_step_duration = time.time() - discrim_step_start
+                print('Step %d : refiner (%.3f sec) and discriminator (%.3f sec)' % (train_step,
+                                                                                     refiner_step_duration,
+                                                                                     discrim_step_duration))
+                # Close both writers
+                discrim_writer.close()
+                refiner_writer.close()
 
 
 def main():

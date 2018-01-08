@@ -16,23 +16,22 @@ The discriminator network differentiates between synthetic and real images.
 
 class DiscriminatorModel(BaseModel):
 
-    @base_utils.config_checker(['discriminator_learning_rate',
-                                'discriminator_optimizer_type'])
+    @base_utils.config_checker(['discrim_learning_rate',
+                                'discrim_optimizer_type'])
     def __init__(self, config=None):
         # Reassign optimizer parameters
-        config.learning_rate = config.discriminator_learning_rate
-        config.optimizer_type = config.discriminator_optimizer_type
-        super().__init__(config=config)  # Real image placeholder defined in base model
-        self.label = tf.placeholder(tf.int32, shape=(None,), name='true_real_or_fake')
-        self.pred = tf.placeholder(tf.float32, shape=(None,), name='pred_real_or_fake')
-        with tf.variable_scope('discriminator_model'):
+        config.learning_rate = config.discrim_learning_rate
+        config.optimizer_type = config.discrim_optimizer_type
+        super().__init__(config=config)
+        self.label = tf.placeholder(tf.int32, shape=(None,), name='label')
+        with tf.variable_scope('discrim_model'):
             self.predict = self.model(config=config)
-            self.loss = self.discriminator_loss()
+            self.loss = self.discrim_loss()
             self.optimize = self.optimizer(config=config)
 
-    @base_utils.config_checker(['discriminator_initializer'])
+    @base_utils.config_checker(['discrim_initializer'])
     def model(self, config=None):
-        with tf.variable_scope('model', initializer=config.discriminator_initializer,
+        with tf.variable_scope('model', initializer=config.discrim_initializer,
                                reuse=tf.AUTO_REUSE):
             x = self.image
             tf.summary.image('input_image', x)
@@ -46,9 +45,9 @@ class DiscriminatorModel(BaseModel):
             x = slim.softmax(x)
         return x
 
-    def discriminator_loss(self):
+    def discrim_loss(self):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
-            loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.pred,
+            loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.predict,
                                                            labels=self.label)
             tf.summary.scalar('loss', loss)
         return loss

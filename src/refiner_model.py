@@ -23,8 +23,7 @@ class RefinerModel(BaseModel):
         config.learning_rate = config.refiner_learning_rate
         config.optimizer_type = config.refiner_optimizer_type
         super().__init__(config=config)
-        self.label = tf.placeholder(tf.int32, shape=(None,), name='true_real_or_fake')
-        self.pred = tf.placeholder(tf.float32, shape=(None,), name='pred_real_or_fake')
+        self.pred = tf.placeholder(tf.float32, shape=(None,), name='pred_label')
         with tf.variable_scope('discriminator_model'):
             self.predict = self.model()
             self.optimize = self.optimizer(config=config)
@@ -48,8 +47,10 @@ class RefinerModel(BaseModel):
 
     def loss_realism(self):
         with tf.variable_scope('loss_realism', reuse=tf.AUTO_REUSE):
+            # All images are fake, so labels are all 0
+            labels = tf.zeros_like(self.pred)
             loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.pred,
-                                                           labels=self.label)
+                                                           labels=labels)
             tf.summary.scalar('loss_realism', loss)
         return loss
 

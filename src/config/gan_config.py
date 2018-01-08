@@ -21,12 +21,16 @@ class GANConfig(BaseConfig):
         # Training parameters (from Algorithm 1 in [1])
         self.num_training_steps = 400  # T
         self.num_refiner_steps = 50  # Kg
-        self.num_discriminator_steps = 1  # Kd
+        self.num_discrim_steps = 1  # Kd
         self.synth_batch_size = 16
         self.real_batch_size = 16
+        self.discrim_batch_size = 16
         # Bigger buffer means better shuffling but slower start up and more memory used.
         self.synth_buffer_size = 100
         self.real_buffer_size = 100
+        # Log saving every n steps
+        self.discrim_summary_every_n_steps = 50
+        self.refiner_summary_every_n_steps = 50
         # Save model checkpoint
         self.save_model = True
         self.save_every_n_steps = 50
@@ -38,12 +42,18 @@ class GANConfig(BaseConfig):
         self.refiner_optimizer_type = 'rmsprop'
 
         # Discriminator
-        self.discriminator_initializer = slim.xavier_initializer()
-        self.discriminator_learning_rate = 0.01
-        self.discriminator_optimizer_type = 'rmsprop'
+        self.discrim_initializer = slim.xavier_initializer()
+        self.discrim_learning_rate = 0.01
+        self.discrim_optimizer_type = 'rmsprop'
 
         # Dataset and tfrecord paths
         self.synth_dataset_path = os.path.join(self.data_dir, self.synth_dataset_name)
         self.real_dataset_path = os.path.join(self.data_dir, self.real_dataset_name)
         self.synth_tfrecord_path = os.path.join(self.synth_dataset_path, 'image.tfrecords')
         self.real_tfrecord_path = os.path.join(self.real_dataset_path, 'image.tfrecords')
+
+        # Set up seperate refiner and discriminator log directories
+        self.refiner_log_path = os.path.join(self.log_path, 'refiner')
+        self.discrim_log_path = os.path.join(self.log_path, 'discrim')
+        self.make_path(self.refiner_log_path)
+        self.make_path(self.discrim_log_path)

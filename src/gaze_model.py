@@ -21,7 +21,6 @@ The output:
 * A trained refiner network
 '''
 
-
 class GazeModel(BaseModel):
 
     @base_utils.config_checker()
