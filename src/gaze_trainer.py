@@ -89,7 +89,7 @@ def run_training(config=None):
                 while True:
                     image_batch, label_batch = sess.run(train_batch)
                     _, _, mse = sess.run([model.optimize,
-                                          model.mse,
+                                          model.loss,
                                           model.train_loss], feed_dict={model.image: image_batch,
                                                                         model.label: label_batch,
                                                                         model.train_mode: True})
@@ -108,7 +108,7 @@ def run_training(config=None):
             sess.run(test_iterator.initializer)
             try:
                 image_batch, label_batch = sess.run(test_batch)
-                _, mse, summary = sess.run([model.mse,
+                _, mse, summary = sess.run([model.loss,
                                             model.test_loss,
                                             merged_summary_op], feed_dict={model.image: image_batch,
                                                                            model.label: label_batch,

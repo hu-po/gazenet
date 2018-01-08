@@ -33,10 +33,14 @@ class GANConfig(BaseConfig):
 
         # Refiner Model
         self.refiner_initializer = slim.xavier_initializer()
-        self.regularization_lambda = 0
+        self.regularization_lambda = 1
+        self.refiner_learning_rate = 0.01
+        self.refiner_optimizer_type = 'rmsprop'
 
         # Discriminator
         self.discriminator_initializer = slim.xavier_initializer()
+        self.discriminator_learning_rate = 0.01
+        self.discriminator_optimizer_type = 'rmsprop'
 
         # Dataset and tfrecord paths
         self.synth_dataset_path = os.path.join(self.data_dir, self.synth_dataset_name)

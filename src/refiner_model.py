@@ -24,11 +24,16 @@ The output:
 
 class RefinerModel(BaseModel):
 
-    @base_utils.config_checker()
+    @base_utils.config_checker(['refiner_learning_rate',
+                                'refiner_optimizer_type'])
     def __init__(self, config=None):
+        # Reassign optimizer parameters
+        config.learning_rate = config.refiner_learning_rate
+        config.optimizer_type = config.refiner_optimizer_type
         super().__init__(config=config)
         with tf.variable_scope('discriminator_model'):
             self.predict = self.model()
+            self.optimize = self.optimizer(config=config)
 
     @base_utils.config_checker(['refiner_initializer'])
     def model(self, config=None):
@@ -40,12 +45,19 @@ class RefinerModel(BaseModel):
 
     @base_utils.config_checker(['regularization_lambda'])
     def loss(self, config=None):
-        loss = tf.add(self.loss_realism,
-                      tf.scalar_mul(config.regularization_lambda,
-                                    self.loss_regularization))
+        with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
+            loss = tf.add(self.loss_realism,
+                          tf.scalar_mul(config.regularization_lambda,
+                                        self.loss_regularization))
+            tf.summary.scalar('loss', loss)
+        return loss
 
     def loss_realism(self):
-        pass
+        with tf.variable_scope('loss_realism', reuse=tf.AUTO_REUSE):
+            loss =
+        return loss
 
     def loss_regularization(self):
-        pass
+        with tf.variable_scope('loss_regularization', reuse=tf.AUTO_REUSE):
+            loss =
+        return loss

@@ -32,12 +32,14 @@ class GazeConfig(BaseConfig):
         self.num_test_examples = 16
         # Bigger buffer means better shuffling but slower start up and more memory used.
         self.buffer_size = 100
-        self.learning_rate = 0.01
         # Save model checkpoint
         self.save_model = True
         self.save_every_n_epochs = 50
         # Model dropout
         self.dropout_keep_prob = 0.8
+        # Optimizer parameters
+        self.learning_rate = 0.01
+        self.optimizer_type = 'rmsprop'
 
         # Dataset and tfrecord paths
         self.dataset_path = os.path.join(self.data_dir, self.dataset_name)

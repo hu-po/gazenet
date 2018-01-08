@@ -23,14 +23,19 @@ The output:
 
 class DiscriminatorModel(BaseModel):
 
-    @base_utils.config_checker()
+    @base_utils.config_checker(['discriminator_learning_rate',
+                                'discriminator_optimizer_type'])
     def __init__(self, config=None):
+        # Reassign optimizer parameters
+        config.learning_rate = config.discriminator_learning_rate
+        config.optimizer_type = config.discriminator_optimizer_type
         super().__init__(config=config)  # Real image placeholder defined in base model
         self.label = tf.placeholder(tf.int32, shape=(None,), name='true_real_or_fake')
         self.predicted = tf.placeholder(tf.float32, shape=(None,), name='pred_real_or_fake')
         with tf.variable_scope('discriminator_model'):
             self.predict = self.model(config=config)
             self.loss = self.discriminator_loss()
+            self.optimize = self.optimizer(config=config)
 
     @base_utils.config_checker(['discriminator_initializer'])
     def model(self, config=None):

@@ -25,3 +25,16 @@ class BaseModel(object):
                                                        config.image_width,
                                                        1 if config.grayscale else config.image_channels),
                                     name='input_image')
+
+    @base_utils.config_checker(['learning_rate', 'optimizer_type'])
+    def optimizer(self, config=None):
+        with tf.variable_scope('optimizer', reuse=tf.AUTO_REUSE):
+            if config.optimizer_type == 'rmsprop':
+                optimizer = tf.train.RMSPropOptimizer(config.learning_rate)
+            elif config.optimizer_type == 'sgd':
+                optimizer = tf.train.GradientDescentOptimizer(config.learning_rate)
+            elif config.optimizer_type == 'adam':
+                optimizer = tf.train.AdamOptimizer(config.learning_rate)
+            else:
+                raise Exception('Unkown optimizer type: %s' % config.optimizer_type)
+        return optimizer.minimize(self.loss)
