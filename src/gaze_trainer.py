@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-import datetime
 import tensorflow as tf
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -47,7 +46,8 @@ def _test_feed(config=None):
 
 
 @base_utils.config_checker(['log_path', 'checkpoint_path', 'num_epochs',
-                            'save_model', 'save_every_n_epochs', 'num_epochs'])
+                            'save_model', 'save_every_n_epochs', 'num_epochs',
+                            'log_path', 'checkpoint_path'])
 def run_training(config=None):
     """
         Train gaze_trainer for the given number of steps.
@@ -58,12 +58,6 @@ def run_training(config=None):
 
     # Get images and labels from iterator, create model from class
     model = GazeModel(config)
-
-    # Set up run-specific checkpoint and log paths
-    d = datetime.datetime.today()
-    run_specific_name = '%s_%s_%s_%s' % (d.month, d.day, d.hour, d.minute)
-    log_path = os.path.join(config.log_path, run_specific_name)
-    checkpoint_path = os.path.join(config.checkpoint_path, run_specific_name)
 
     # The op for initializing the variables.
     init_op = tf.group(tf.global_variables_initializer(),
@@ -77,7 +71,7 @@ def run_training(config=None):
         sess.run(init_op)
         # Logs and model checkpoint paths defined in config
         # TODO: change log path every run to keep historical run data
-        writer = tf.summary.FileWriter(log_path, sess.graph)
+        writer = tf.summary.FileWriter(config.log_path, sess.graph)
         saver = tf.train.Saver()
         for epoch_idx in range(config.num_epochs):
             # Training
@@ -100,8 +94,7 @@ def run_training(config=None):
                                                                                num_train_steps,
                                                                                mse))
                 if config.save_model and ((epoch_idx + 1) % config.save_every_n_epochs) == 0:
-                    os.mkdir(checkpoint_path)
-                    save_path = saver.save(sess, os.path.join(checkpoint_path, str(epoch_idx + 1)))
+                    save_path = saver.save(sess, os.path.join(config.checkpoint_path, str(epoch_idx + 1)))
                     print('Model checkpoint saved at %s' % save_path)
             # Testing
             epoch_test_start = time.time()

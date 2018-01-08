@@ -72,8 +72,7 @@ def _write_gazedata_tfrecord(tfrecord_path, image_paths, config=None):
     writer.close()
 
 
-@config_checker(['image_width', 'image_height', 'dataset_path', 'train_test_split',
-                 'train_tfrecord_path', 'test_tfrecord_path'])
+@config_checker(['dataset_path', 'train_test_split', 'train_tfrecord_path', 'test_tfrecord_path'])
 def gazedata_to_tfrecords(config=None):
     if os.path.exists(config.train_tfrecord_path) or os.path.exists(config.test_tfrecord_path):
         print('TFRecords have already been created for this dataset')
@@ -97,3 +96,29 @@ def gazedata_to_tfrecords(config=None):
     # Write train and test tfrecords to paths in config
     _write_gazedata_tfrecord(config.train_tfrecord_path, train_image_paths, config=config)
     _write_gazedata_tfrecord(config.test_tfrecord_path, test_image_paths, config=config)
+
+@config_checker()
+def _write_image_tfrecord(tfrecord_path, image_paths, config=None):
+    writer = tf.python_io.TFRecordWriter(tfrecord_path)
+    for image_path in image_paths:
+        img_string = _imagepath_to_string(image_path, config=config)
+        # Feature defines each discrete entry in the tfrecords file
+        feature = {
+            'image_raw': _bytes_feature(img_string),
+        }
+        example = tf.train.Example(features=tf.train.Features(feature=feature))
+        writer.write(example.SerializeToString())
+    writer.close()
+
+@config_checker(['synth_tfrecord_path', 'real_tfrecord_path', 'synth_dataset_path', 'real_dataset_path'])
+def image_to_tfrecords(config=None):
+    if os.path.exists(config.synth_tfrecord_path) and os.path.exists(config.real_tfrecord_path):
+        print('TFRecords have already been created for these datasets')
+        return
+    synth_image_paths = glob.glob(os.path.join(config.synth_dataset_path, '*.png'))
+    real_image_paths = glob.glob(os.path.join(config.real_dataset_path, '*.png'))
+    print('There are %d real images and %d synthetic images' % (len(real_image_paths),
+                                                                len(synth_image_paths)))
+    # Write train and test tfrecords to paths in config
+    _write_image_tfrecord(config.synth_tfrecord_path, synth_image_paths, config=config)
+    _write_image_tfrecord(config.real_tfrecord_path, real_image_paths, config=config)

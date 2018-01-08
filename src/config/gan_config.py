@@ -1,51 +1,37 @@
 import os
+from src.config.base_config import BaseConfig
 
 '''
-This python file defines parameters used to train the GAN (refiner and discriminator nets)
+GANConfig class contains parameters used to train the (refiner and discriminator nets)
 '''
 
-# =========== #
-#   Dataset   #
-# =========== #
-synthetic_dataset = '04012018_headlook'
-real_dataset = '070118_real'
-# Clip the dataset sizes
-num_synth_images = 5000
-num_real_images = 100
-# Image dimensions
-image_width = 128
-image_height = 96
-image_channels = 3
-# Grayscale images are quicker, and depending on problem color is not important
-grayscale = True
 
-# ============ #
-#   Training   #
-# ============ #
-num_training_steps = 400
-num_refiner_steps = 50  # Kg
-num_discriminator_steps = 1  # Kd
+class GANConfig(BaseConfig):
 
-synth_batch_size = 16
-real_batch_size = 16
+    def __init__(self):
+        super().__init__(run_name='gan')
+        # GAN needs two input datasets and will create an output dataset
+        self.synth_dataset_name = '04012018_headlook'
+        self.real_dataset_name = '070118_real'
+        # Clip the dataset sizes
+        self.num_synth_images = 5000
+        self.num_real_images = 100
 
-# Bigger buffer means better shuffling but slower start up and more memory used.
-buffer_size = 100
-learning_rate = 0.01
+        # Training parameters (from Algorithm 1 in [1])
+        self.num_training_steps = 400  # T
+        self.num_refiner_steps = 50  # Kg
+        self.num_discriminator_steps = 1  # Kd
+        self.synth_batch_size = 16
+        self.real_batch_size = 16
+        # Bigger buffer means better shuffling but slower start up and more memory used.
+        self.synth_buffer_size = 100
+        self.real_buffer_size = 100
+        # Save model checkpoint
+        self.save_model = True
+        self.save_every_n_steps = 50
 
-# Save model checkpoint
-save_model = True
-save_every_n_epochs = 50
-# Model dropout
-dropout_keep_prob = 0.8
-
-# ============== #
-#    Directory   #
-# ============== #
-dataset_path = os.path.join(data_dir, dataset_name)
-train_dir = os.path.join(dataset_path, 'train')
-test_dir = os.path.join(dataset_path, 'test')
-train_tfrecord_path = os.path.join(dataset_path, 'train.tfrecords')
-test_tfrecord_path = os.path.join(dataset_path, 'test.tfrecords')
-log_path = os.path.join(log_dir, dataset_name)
-checkpoint_path = os.path.join(model_dir, dataset_name)
+        # Dataset and tfrecord paths
+        self.synth_dataset_path = os.path.join(self.data_dir, self.synth_dataset_name)
+        self.real_dataset_path = os.path.join(self.data_dir, self.real_dataset_name)
+        self.synth_tfrecord_path = os.path.join(self.synth_dataset_path, 'image.tfrecords')
+        self.real_tfrecord_path = os.path.join(self.real_dataset_path, 'image.tfrecords')

@@ -61,17 +61,21 @@ def image_augmentation(image, label, config=None):
 
 
 @config_checker(['grayscale'])
-def grayscale(image, label, config=None):
+def grayscale(image, label=None, config=None):
     with tf.name_scope('image_prep'):
         if config.grayscale:
             image = tf.image.rgb_to_grayscale(image)
+    if label is None:
+        return image
     return image, label
 
 
-def standardize(image, label, config=None):
+def standardize(image, label=None, config=None):
     with tf.name_scope('image_prep'):
         # Standardize the images
         image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
+        if label is None:
+            return image
         # Standardize the labels
         label = tf.cast(label, tf.float32) * (1. / 100) - 0.5
     return image, label

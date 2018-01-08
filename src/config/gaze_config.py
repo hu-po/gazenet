@@ -9,7 +9,7 @@ GazeConfig class contains parameters used to train the gaze models.
 class GazeConfig(BaseConfig):
 
     def __init__(self):
-        super().__init__()
+        super().__init__(run_name='gaze')
         # Gazenet uses a single dataset
         self.dataset_name = '04012018_headlook'
         # Train targets are taken from image filenames
@@ -43,7 +43,3 @@ class GazeConfig(BaseConfig):
         self.dataset_path = os.path.join(self.data_dir, self.dataset_name)
         self.train_tfrecord_path = os.path.join(self.dataset_path, 'train.tfrecords')
         self.test_tfrecord_path = os.path.join(self.dataset_path, 'test.tfrecords')
-
-        # Make sure log and checkpoint directories are created
-        self.log_path = os.path.join(self.log_dir, self.dataset_name)
-        self.checkpoint_path = os.path.join(self.model_dir, self.dataset_name)
