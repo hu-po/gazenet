@@ -27,6 +27,7 @@ def _synth_feed(config=None):
         dataset = dataset.map(lambda x: train_utils.decode_image(x, config=config))
         dataset = dataset.map(lambda i: train_utils.grayscale(i, config=config))
         dataset = dataset.map(lambda i: train_utils.standardize(i, config=config))
+        dataset = dataset.repeat() # Repeat dataset indefinitely
         dataset = dataset.shuffle(config.synth_buffer_size)
         dataset = dataset.batch(config.synth_batch_size)
         iterator = dataset.make_initializable_iterator()
@@ -42,6 +43,7 @@ def _real_feed(config=None):
         dataset = dataset.map(lambda x: train_utils.decode_image(x, config=config))
         dataset = dataset.map(lambda i: train_utils.grayscale(i, config=config))
         dataset = dataset.map(lambda i: train_utils.standardize(i, config=config))
+        dataset = dataset.repeat() # Repeat dataset indefinitely
         dataset = dataset.shuffle(config.real_buffer_size)
         dataset = dataset.batch(config.real_batch_size)
         iterator = dataset.make_initializable_iterator()
@@ -77,55 +79,33 @@ def run_training(config=None):
         # Logs and model checkpoint paths defined in config
         writer = tf.summary.FileWriter(config.log_path, sess.graph)
         saver = tf.train.Saver()
-        for train_idx in range(config.num_training_steps):
+        # Initalize both datasets (they repeat forever, so only need this once)
+        sess.run(real_iterator.initializer)
+        sess.run(synth_iterator.initializer)
+        for train_step in range(config.num_training_steps):
+            refiner_step_start = time.time()
+            for refiner_step in range(config.num_refiner_steps):
+                synth_image_batch = sess.run(synth_batch)
+
+            refiner_step_duration = time.time() - refiner_step_start
 
 
+            discriminator_step_start = time.time()
+            for discriminator_step in range(config.num_discriminator_steps):
+                synth_image_batch = sess.run(synth_batch)
+                real_image_batch = sess.run(real_batch)
 
-
-
-            # Training
-            epoch_train_start = time.time()
-            num_train_steps = 0
-            sess.run(train_iterator.initializer)
-            try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
-                while True:
-                    image_batch, label_batch = sess.run(train_batch)
-                    _, _, mse = sess.run([model.optimize,
-                                          model.mse,
-                                          model.train_loss], feed_dict={model.image: image_batch,
-                                                                        model.label: label_batch,
-                                                                        model.train_mode: True})
-                    num_train_steps += 1
-            except tf.errors.OutOfRangeError:
-                epoch_train_duration = time.time() - epoch_train_start
-                print('Epoch %d: Training (%.3f sec)(%d steps) - mse: %.2f' % (epoch_idx,
-                                                                               epoch_train_duration,
-                                                                               num_train_steps,
-                                                                               mse))
-                if config.save_model and ((epoch_idx + 1) % config.save_every_n_epochs) == 0:
-                    save_path = saver.save(sess, os.path.join(checkpoint_path, str(epoch_idx + 1)))
-                    print('Model checkpoint saved at %s' % save_path)
-            # Testing
-            epoch_test_start = time.time()
-            sess.run(test_iterator.initializer)
-            try:
-                image_batch, label_batch = sess.run(test_batch)
-                _, mse, summary = sess.run([model.mse,
-                                            model.test_loss,
-                                            merged_summary_op], feed_dict={model.image: image_batch,
-                                                                           model.label: label_batch,
-                                                                           model.train_mode: False})
-            except tf.errors.OutOfRangeError:
-                epoch_test_duration = time.time() - epoch_test_start
-                print('Epoch %d: Testing (%.3f sec) - acc: %.2f' % (epoch_idx,
-                                                                    epoch_test_duration,
-                                                                    mse))
-            writer.add_summary(summary, (epoch_idx + 1))
+            discriminator_step_duration = time.time() - discriminator_step_start
+            print('Step %d : refiner (%.3f sec) and discriminator (%.3f sec)' % (train_step,
+                                                                                 refiner_step_duration,
+                                                                                 discriminator_step_duration))
+            writer.add_summary(summary, train_step)
         writer.close()
 
 
 def main():
-    base_utils.gazedata_to_tfrecord(config=config)
+    config = GANConfig()
+    base_utils.image_to_tfrecords(config=config)
     run_training(config=config)
 
 
