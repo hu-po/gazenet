@@ -7,14 +7,14 @@ import tensorflow as tf
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-from src.discriminator_model import DiscriminatorModel
-from src.refiner_model import RefinerModel
 import src.utils.train_utils as train_utils
+from src.config.gan_config import G
 
 '''
 This file is used to train the GAN, which is composed of a refiner net and a 
  discriminator net. It follows Algorithm 1 in [1].
 '''
+
 
 @train_utils.config_checker(['num_train_examples',
                              'train_tfrecord_path',
@@ -131,7 +131,8 @@ def run_training(config=None):
 
 
 def main():
-    import src.gan_config as config
+
+    base_utils.gazedata_to_tfrecord(config=config)
     run_training(config=config)
 
 

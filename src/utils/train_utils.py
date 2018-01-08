@@ -1,26 +1,11 @@
 import tensorflow as tf
+from src.utils.base_utils import config_checker
 
 '''
 This file contains common functions used for training. Stored here to prevent
-clutter in the main training files.
+clutter in the main training files or in the general util file.
 '''
 
-
-def config_checker(config_properties):
-    """
-    Decorator checks to make sure the function contains the neccessary config values
-    :param config_properties: [string] list of strings of properties used in function
-    :return: function
-    """
-    def decorator(func):
-        def wrapped(*args, **kwargs):
-            assert kwargs.get('config', None) is not None, '%s needs config argument' % func.__name__
-            for prop in config_properties:
-                assert kwargs['config'].__getattribute__(prop) is not None,\
-                    '%s needs the (not None) property %s' % (func.__name__, prop)
-            return func(*args, **kwargs)
-        return wrapped
-    return decorator
 
 @config_checker(['image_height', 'image_width', 'image_channels'])
 def decode_image(serialized_example, config=None):
@@ -37,6 +22,7 @@ def decode_image(serialized_example, config=None):
     image_shape = tf.stack([config.image_height, config.image_width, config.image_channels])
     image = tf.reshape(image, image_shape)
     return image
+
 
 @config_checker(['image_height', 'image_width', 'image_channels'])
 def decode_gaze(serialized_example, config=None):

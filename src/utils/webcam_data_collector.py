@@ -6,7 +6,7 @@ import cv2
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-from src.gaze_config import data_dir
+from src.config.gaze_config import data_dir
 
 '''
 This python file collects unlabeled real gaze images using the webcamera.

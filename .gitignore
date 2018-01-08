@@ -1,9 +1,9 @@
 # =========== #
 # Local Files #
 # =========== #
-data/*
-logs/*
-models/*
+local/data/*
+local/logs/*
+local/models/*
 
 # =========== #
 #  Notebooks  #
