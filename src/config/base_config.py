@@ -27,6 +27,11 @@ class BaseConfig(object):
         d = datetime.datetime.today()
         run_specific_name = '%s_%s_%s_%s_%s' % (run_name, d.month, d.day, d.hour, d.minute)
         self.log_path = os.path.join(self.log_dir, run_specific_name)
-        self.checkpoint_path = os.path.join(self.log_dir, run_specific_name)
-        os.mkdir(self.log_path)
-        os.mkdir(self.checkpoint_path)
+        self.checkpoint_path = os.path.join(self.model_dir, run_specific_name)
+        self.make_path(self.log_path)
+        self.make_path(self.checkpoint_path)
+
+    @staticmethod
+    def make_path(path):
+        if not os.path.exists(path):
+            os.mkdir(path)

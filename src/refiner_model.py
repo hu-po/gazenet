@@ -10,15 +10,7 @@ import src.utils.base_utils as base_utils
 from src.base_model import BaseModel
 
 '''
-
 The refiner network 'refines' a synthetic image, making it more real.
-
-The input:
-* A synthetic image
-
-The output:
-* The refined synthetic image
-
 '''
 
 

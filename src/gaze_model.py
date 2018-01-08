@@ -31,10 +31,8 @@ class GazeModel(BaseModel):
         self.train_mode = tf.placeholder(tf.bool, shape=[], name='train_mode_switch')
         with tf.variable_scope('gaze_model'):
             self.predict = self.model(config=config)
-            self.loss = self.mse_func()
+            self.loss = self.mse()
             self.optimize = self.optimizer(config=config)
-            self.train_loss = self.train_loss_func()
-            self.test_loss = self.test_loss_func()
 
     @base_utils.config_checker(['dropout_keep_prob'])
     def model(self, config=None):
@@ -57,15 +55,8 @@ class GazeModel(BaseModel):
             x = slim.fully_connected(x, 2, activation_fn=None)
         return x
 
-    def mse_func(self):
-        with tf.variable_scope('mse', reuse=tf.AUTO_REUSE):
+    def mse(self):
+        with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
             mse = tf.losses.mean_squared_error(labels=self.label, predictions=self.predict)
+            tf.summary.scalar('mse', mse)
         return mse
-
-    def train_loss_func(self):
-        tf.summary.scalar('train_loss', self.loss)
-        return self.loss
-
-    def test_loss_func(self):
-        tf.summary.scalar('test_loss', self.loss)
-        return self.loss

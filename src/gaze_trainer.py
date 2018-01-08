@@ -65,7 +65,7 @@ def run_training(config=None):
     test_iterator, test_batch = _test_feed(config=config)
 
     # Get images and labels from iterator, create model from class
-    model = GazeModel(config)
+    model = GazeModel(config=config)
 
     # The op for initializing the variables.
     init_op = tf.group(tf.global_variables_initializer(),
@@ -78,7 +78,8 @@ def run_training(config=None):
         # Initialize variables
         sess.run(init_op)
         # Logs and model checkpoint paths defined in config
-        writer = tf.summary.FileWriter(config.log_path, sess.graph)
+        train_writer = tf.summary.FileWriter(config.train_log_path, sess.graph)
+        test_writer = tf.summary.FileWriter(config.test_log_path, sess.graph)
         saver = tf.train.Saver()
         for epoch_idx in range(config.num_epochs):
             # Training
@@ -88,11 +89,11 @@ def run_training(config=None):
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
                     image_batch, label_batch = sess.run(train_batch)
-                    _, _, mse = sess.run([model.optimize,
-                                          model.loss,
-                                          model.train_loss], feed_dict={model.image: image_batch,
-                                                                        model.label: label_batch,
-                                                                        model.train_mode: True})
+                    _, mse, train_summary = sess.run([model.optimize,
+                                                      model.loss,
+                                                      merged_summary_op], feed_dict={model.image: image_batch,
+                                                                                     model.label: label_batch,
+                                                                                     model.train_mode: True})
                     num_train_steps += 1
             except tf.errors.OutOfRangeError:
                 epoch_train_duration = time.time() - epoch_train_start
@@ -100,26 +101,27 @@ def run_training(config=None):
                                                                                epoch_train_duration,
                                                                                num_train_steps,
                                                                                mse))
-                if config.save_model and ((epoch_idx + 1) % config.save_every_n_epochs) == 0:
-                    save_path = saver.save(sess, os.path.join(config.checkpoint_path, str(epoch_idx + 1)))
-                    print('Model checkpoint saved at %s' % save_path)
-            # Testing
+            train_writer.add_summary(train_summary, (epoch_idx + 1))
+            if config.save_model and ((epoch_idx + 1) % config.save_every_n_epochs) == 0:
+                save_path = saver.save(sess, os.path.join(config.checkpoint_path, str(epoch_idx + 1)))
+                print('Model checkpoint saved at %s' % save_path)
+            # Testing (one single batch is run)
             epoch_test_start = time.time()
             sess.run(test_iterator.initializer)
-            try:
-                image_batch, label_batch = sess.run(test_batch)
-                _, mse, summary = sess.run([model.loss,
-                                            model.test_loss,
-                                            merged_summary_op], feed_dict={model.image: image_batch,
-                                                                           model.label: label_batch,
-                                                                           model.train_mode: False})
-            except tf.errors.OutOfRangeError:
-                epoch_test_duration = time.time() - epoch_test_start
-                print('Epoch %d: Testing (%.3f sec) - acc: %.2f' % (epoch_idx,
-                                                                    epoch_test_duration,
-                                                                    mse))
-            writer.add_summary(summary, (epoch_idx + 1))
-        writer.close()
+            image_batch, label_batch = sess.run(test_batch)
+            mse, test_summary = sess.run([model.loss,
+                                          merged_summary_op], feed_dict={model.image: image_batch,
+                                                                         model.label: label_batch,
+                                                                         model.train_mode: False})
+
+            epoch_test_duration = time.time() - epoch_test_start
+            print('Epoch %d: Testing (%.3f sec) - acc: %.2f' % (epoch_idx,
+                                                                epoch_test_duration,
+                                                                mse))
+            test_writer.add_summary(test_summary, (epoch_idx + 1))
+        # Close the log writers
+        train_writer.close()
+        test_writer.close()
 
 
 def main():

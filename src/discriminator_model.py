@@ -10,14 +10,7 @@ import src.utils.base_utils as base_utils
 from src.base_model import BaseModel
 
 '''
-The discriminator network is trained to differentiate between synthetic and real
-images.
-
-The input:
-* A real or synthetic image
-
-The output:
-* Single softmax output, denoting either real or fake image
+The discriminator network differentiates between synthetic and real images.
 '''
 
 

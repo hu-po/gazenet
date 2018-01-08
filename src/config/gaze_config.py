@@ -25,13 +25,13 @@ class GazeConfig(BaseConfig):
 
         # Training parameters
         self.num_epochs = 400
-        self.batch_size = 16
+        self.batch_size = 4
         # Number of train examples (if you want to limit training data)
-        self.num_train_examples = 3000
+        self.num_train_examples = 200
         # Number of test examples in each validation step
         self.num_test_examples = 16
         # Bigger buffer means better shuffling but slower start up and more memory used.
-        self.buffer_size = 100
+        self.buffer_size = 10
         # Save model checkpoint
         self.save_model = True
         self.save_every_n_epochs = 50
@@ -45,3 +45,9 @@ class GazeConfig(BaseConfig):
         self.dataset_path = os.path.join(self.data_dir, self.dataset_name)
         self.train_tfrecord_path = os.path.join(self.dataset_path, 'train.tfrecords')
         self.test_tfrecord_path = os.path.join(self.dataset_path, 'test.tfrecords')
+
+        # Set up seperate train and test log directories
+        self.train_log_path = os.path.join(self.log_path, 'train')
+        self.test_log_path = os.path.join(self.log_path, 'test')
+        self.make_path(self.train_log_path)
+        self.make_path(self.test_log_path)
