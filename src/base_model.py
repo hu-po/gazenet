@@ -1,5 +1,6 @@
 import os
 import sys
+import functools
 import tensorflow as tf
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -19,7 +20,6 @@ class BaseModel(object):
                                 'image_channels',
                                 'grayscale'])
     def __init__(self, config=None):
-        self.config = config
         self.image = tf.placeholder(tf.float32, shape=(None,
                                                        config.image_height,
                                                        config.image_width,

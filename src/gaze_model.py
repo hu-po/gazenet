@@ -30,14 +30,15 @@ class GazeModel(BaseModel):
         self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
         self.train_mode = tf.placeholder(tf.bool, shape=[], name='train_mode_switch')
         with tf.variable_scope('gaze_model'):
-            self.predict = self.predict_func()
+            self.predict = self.model(config=config)
             self.mse = self.mse_func()
-            self.optimize = self.optimize_func()
+            self.optimize = self.optimize_func(config=config)
             self.train_loss = self.train_loss_func()
             self.test_loss = self.test_loss_func()
 
-    def predict_func(self):
-        with tf.variable_scope('predict', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
+    @base_utils.config_checker(['dropout_keep_prob'])
+    def model(self, config=None):
+        with tf.variable_scope('model', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
             x = self.image
             tf.summary.image('input_image', x)
             x = slim.conv2d(x, 32, [3, 3], scope='conv1')
@@ -48,17 +49,18 @@ class GazeModel(BaseModel):
             x = slim.conv2d(x, 128, [3, 3], scope='conv5')
             x = slim.max_pool2d(x, [2, 2], scope='pool2')
             x = slim.flatten(x)
-            x = slim.dropout(x, self.config.dropout_keep_prob,
+            x = slim.dropout(x, config.dropout_keep_prob,
                              is_training=self.train_mode, scope='dropout1')
             x = slim.fully_connected(x, 256, scope='fc2')
-            x = slim.dropout(x, self.config.dropout_keep_prob,
+            x = slim.dropout(x, config.dropout_keep_prob,
                              is_training=self.train_mode, scope='dropout2')
             x = slim.fully_connected(x, 2, activation_fn=None)
         return x
 
-    def optimize_func(self):
+    @base_utils.config_checker(['learning_rate'])
+    def optimize_func(self, config=None):
         with tf.variable_scope('optimize', reuse=tf.AUTO_REUSE):
-            optimizer = tf.train.RMSPropOptimizer(self.config.learning_rate)
+            optimizer = tf.train.RMSPropOptimizer(config.learning_rate)
         return optimizer.minimize(self.mse)
 
     def mse_func(self):

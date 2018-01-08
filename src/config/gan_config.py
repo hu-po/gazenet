@@ -1,4 +1,5 @@
 import os
+import tensorflow.contrib.slim as slim
 from src.config.base_config import BaseConfig
 
 '''
@@ -29,6 +30,13 @@ class GANConfig(BaseConfig):
         # Save model checkpoint
         self.save_model = True
         self.save_every_n_steps = 50
+
+        # Refiner Model
+        self.refiner_initializer = slim.xavier_initializer()
+        self.regularization_lambda = 0
+
+        # Discriminator
+        self.discriminator_initializer = slim.xavier_initializer()
 
         # Dataset and tfrecord paths
         self.synth_dataset_path = os.path.join(self.data_dir, self.synth_dataset_name)

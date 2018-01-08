@@ -28,13 +28,24 @@ class RefinerModel(BaseModel):
     def __init__(self, config=None):
         super().__init__(config=config)
         with tf.variable_scope('discriminator_model'):
-            self.predict = self.predict_func()
+            self.predict = self.model()
 
-    def predict_func(self):
-        with tf.variable_scope('predict', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
+    @base_utils.config_checker(['refiner_initializer'])
+    def model(self, config=None):
+        with tf.variable_scope('model', initializer=config.refiner_initializer,
+                               reuse=tf.AUTO_REUSE):
             x = self.image
             tf.summary.image('input_image', x)
         return x
 
-    def refiner_loss(self):
+    @base_utils.config_checker(['regularization_lambda'])
+    def loss(self, config=None):
+        loss = tf.add(self.loss_realism,
+                      tf.scalar_mul(config.regularization_lambda,
+                                    self.loss_regularization))
+
+    def loss_realism(self):
+        pass
+
+    def loss_regularization(self):
         pass

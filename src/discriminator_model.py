@@ -10,7 +10,6 @@ import src.utils.base_utils as base_utils
 from src.base_model import BaseModel
 
 '''
-
 The discriminator network is trained to differentiate between synthetic and real
 images.
 
@@ -19,7 +18,6 @@ The input:
 
 The output:
 * Single softmax output, denoting either real or fake image
-
 '''
 
 
@@ -27,12 +25,17 @@ class DiscriminatorModel(BaseModel):
 
     @base_utils.config_checker()
     def __init__(self, config=None):
-        super().__init__(config=config)
+        super().__init__(config=config)  # Real image placeholder defined in base model
+        self.label = tf.placeholder(tf.int32, shape=(None,), name='true_real_or_fake')
+        self.predicted = tf.placeholder(tf.float32, shape=(None,), name='pred_real_or_fake')
         with tf.variable_scope('discriminator_model'):
-            self.predict = self.predict_func()
+            self.predict = self.model(config=config)
+            self.loss = self.discriminator_loss()
 
-    def predict_func(self):
-        with tf.variable_scope('predict', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
+    @base_utils.config_checker(['discriminator_initializer'])
+    def model(self, config=None):
+        with tf.variable_scope('model', initializer=config.discriminator_initializer,
+                               reuse=tf.AUTO_REUSE):
             x = self.image
             tf.summary.image('input_image', x)
             x = slim.conv2d(x, 96, [3, 3], stride=2, scope='conv1')
@@ -44,3 +47,10 @@ class DiscriminatorModel(BaseModel):
             x = slim.flatten(x)
             x = slim.softmax(x)
         return x
+
+    def discriminator_loss(self):
+        with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
+            loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.predicted,
+                                                           labels=self.label)
+            tf.summary.scalar('loss', loss)
+        return loss
