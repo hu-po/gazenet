@@ -23,7 +23,7 @@ class RefinerModel(BaseModel):
         config.learning_rate = config.refiner_learning_rate
         config.optimizer_type = config.refiner_optimizer_type
         super().__init__(config=config)
-        self.pred = tf.placeholder(tf.float32, shape=(None, 1), name='pred_label')
+        self.label = tf.placeholder(tf.float32, shape=(None, 2), name='pred_label')
         with tf.variable_scope('discriminator_model'):
             self.predict = self.model(config=config)
             self.loss_reg = self.loss_regularization(config=config)
@@ -39,7 +39,7 @@ class RefinerModel(BaseModel):
         with tf.variable_scope('model', initializer=config.refiner_initializer,
                                reuse=tf.AUTO_REUSE):
             x = self.image
-            self.add_summary('input_image', x)
+            self.add_summary('input_image', x, 'image')
 
             # Quick function that implements
             def resnet_block(input, num_features, kernel_size):
@@ -61,9 +61,10 @@ class RefinerModel(BaseModel):
     def loss_realism(self):
         with tf.variable_scope('loss_realism', reuse=tf.AUTO_REUSE):
             # All images are fake, so labels are all 0
-            labels = tf.zeros_like(self.pred)
-            loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.pred,
-                                                           labels=labels)
+            labels = tf.zeros(shape=[tf.shape(self.label)[0]], dtype=tf.uint8)
+            one_hot_labels = tf.one_hot(labels, 2)
+            loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=one_hot_labels,
+                                                   logits=self.label)
             self.add_summary('loss_realism', loss)
         return loss
 

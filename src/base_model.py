@@ -31,9 +31,14 @@ class BaseModel(object):
         # List of summaries in this model class
         self.summaries = []
 
-    def add_summary(self, name, value):
+    def add_summary(self, name, value, summary_type='scalar'):
         # Creates a summary object and adds it to the summaries list for the model class
-        s = tf.summary.scalar(name, value)
+        if summary_type is 'scalar':
+            s = tf.summary.scalar(name, value)
+        elif summary_type is 'image':
+            s = tf.summary.image(name, value)
+        else:
+            raise Exception('Non valid summary type given')
         self.summaries.append(s)
 
     @base_utils.config_checker(['learning_rate', 'optimizer_type'])

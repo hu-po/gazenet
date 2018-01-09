@@ -24,7 +24,6 @@ class GANConfig(BaseConfig):
         self.num_discrim_steps = 1  # Kd
         self.synth_batch_size = 2
         self.real_batch_size = 2
-        self.discrim_batch_size = 2
         # Bigger buffer means better shuffling but slower start up and more memory used.
         self.synth_buffer_size = 4
         self.real_buffer_size = 4
@@ -34,6 +33,10 @@ class GANConfig(BaseConfig):
         # Save model checkpoint
         self.save_model = True
         self.save_every_n_train_steps = 50
+        # Batch of
+        self.discrim_batch_size = 2
+        self.discrim_capacity = 10
+        self.discrim_min_after_dequeue = 5
 
         # Refiner Model
         self.refiner_initializer = slim.xavier_initializer()

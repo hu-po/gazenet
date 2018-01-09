@@ -57,7 +57,6 @@ def _real_feed(config=None):
                              'refiner_summary_every_n_steps',
                              'num_discrim_steps',
                              'discrim_summary_every_n_steps',
-                             'discrim_batch_size',
                              'save_model',
                              'save_every_n_train_steps'])
 def run_training(config=None):
@@ -102,7 +101,7 @@ def run_training(config=None):
                 # TODO: This leads to double-evaluation of the synthetic image batch, how to improve?
                 _, refiner_summary = sess.run([refiner_model.optimize,
                                                refiner_summary_op],
-                                              feed_dict={refiner_model.pred: pred_label,
+                                              feed_dict={refiner_model.label: pred_label,
                                                          refiner_model.image: synth_image})
                 if refiner_step % config.refiner_summary_every_n_steps == 0:
                     num_steps_elapsed = train_step * config.num_refiner_steps + refiner_step
@@ -111,15 +110,14 @@ def run_training(config=None):
             discrim_step_start = time.time()
             for discrim_step in range(config.num_discrim_steps):
                 synth_image = sess.run(synth_batch)
-                real_image = sess.run(real_batch)
                 # Feed synthetic images through refiner network
                 refined_image = sess.run(refiner_model.predict, feed_dict={refiner_model.image: synth_image})
-                # Shuffle together refined synthetic and real images in batch
-                combined_images = tf.concat([real_image, refined_image], axis=0)
-                combined_labels = tf.concat([tf.ones_like(real_image),
-                                             tf.zeros_like(refined_image)], axis=0)
-                mixed_image, mixed_label = tf.train.shuffle_batch([combined_images, combined_labels],
-                                                                  batch_size=config.discrim_batch_size)
+                real_image = sess.run(real_batch)
+                mixed_batch = sess.run(discrim_model.mixed_image_batch,
+                                                    feed_dict={discrim_model.real_image:real_image,
+                                                               discrim_model.refined_image:refined_image})
+                mixed_image = mixed_batch[0]
+                mixed_label = mixed_batch[1]
                 # Train discriminator network using mixed images
                 _, discrim_summary = sess.run([discrim_model.optimize,
                                                discrim_summary_op],
