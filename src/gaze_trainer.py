@@ -77,10 +77,11 @@ def run_training(config=None):
     with tf.Session() as sess:
         # Initialize variables
         sess.run(init_op)
-        # Logs and model checkpoint paths defined in config
+        # Logs paths for summaries defined in config
         train_writer = tf.summary.FileWriter(config.train_log_path, sess.graph)
         test_writer = tf.summary.FileWriter(config.test_log_path, sess.graph)
-        saver = tf.train.Saver()
+        # Saver for just the model
+        saver = tf.train.Saver()#{'gaze_net': model.predict})
         for epoch_idx in range(config.num_epochs):
             # Training
             epoch_train_start = time.time()

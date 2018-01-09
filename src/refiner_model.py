@@ -26,6 +26,9 @@ class RefinerModel(BaseModel):
         self.pred = tf.placeholder(tf.float32, shape=(None,), name='pred_label')
         with tf.variable_scope('discriminator_model'):
             self.predict = self.model(config=config)
+            self.loss_reg = self.loss_regularization()
+            self.loss_real = self.loss_realism()
+            self.loss = self.combined_loss(config=config)
             self.optimize = self.optimizer(config=config)
 
     @base_utils.config_checker(['refiner_initializer'])
@@ -37,11 +40,11 @@ class RefinerModel(BaseModel):
         return x
 
     @base_utils.config_checker(['regularization_lambda'])
-    def loss(self, config=None):
+    def combined_loss(self, config=None):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
-            loss = tf.add(self.loss_realism,
+            loss = tf.add(self.loss_real,
                           tf.scalar_mul(config.regularization_lambda,
-                                        self.loss_regularization))
+                                        self.loss_reg))
             tf.summary.scalar('loss', loss)
         return loss
 

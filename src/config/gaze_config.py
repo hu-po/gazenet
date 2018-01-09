@@ -34,7 +34,7 @@ class GazeConfig(BaseConfig):
         self.buffer_size = 10
         # Save model checkpoint
         self.save_model = True
-        self.save_every_n_epochs = 50
+        self.save_every_n_epochs = 1
         # Model dropout
         self.dropout_keep_prob = 0.8
         # Optimizer parameters
