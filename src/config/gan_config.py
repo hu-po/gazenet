@@ -38,6 +38,9 @@ class GANConfig(BaseConfig):
         # Refiner Model
         self.refiner_initializer = slim.xavier_initializer()
         self.regularization_lambda = 1
+        self.num_resnet_blocks = 4
+        self.num_feat_per_resnet_block = 64
+        self.kernel_size_resnet_block = 3
         self.refiner_learning_rate = 0.01
         self.refiner_optimizer_type = 'rmsprop'
 

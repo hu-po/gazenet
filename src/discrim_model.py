@@ -23,7 +23,7 @@ class DiscriminatorModel(BaseModel):
         config.learning_rate = config.discrim_learning_rate
         config.optimizer_type = config.discrim_optimizer_type
         super().__init__(config=config)
-        self.label = tf.placeholder(tf.int32, shape=(None,), name='label')
+        self.label = tf.placeholder(tf.float32, shape=(None, 1), name='label')
         with tf.variable_scope('discrim_model'):
             self.predict = self.model(config=config)
             self.loss = self.discrim_loss()
@@ -42,6 +42,7 @@ class DiscriminatorModel(BaseModel):
             x = slim.conv2d(x, 32, [1, 1], scope='conv4')
             x = slim.conv2d(x, 2, [1, 1], scope='conv5')
             x = slim.flatten(x)
+            x = slim.fully_connected(x, 1, activation_fn=None)
             x = slim.softmax(x)
         return x
 

@@ -23,28 +23,38 @@ class RefinerModel(BaseModel):
         config.learning_rate = config.refiner_learning_rate
         config.optimizer_type = config.refiner_optimizer_type
         super().__init__(config=config)
-        self.pred = tf.placeholder(tf.float32, shape=(None,), name='pred_label')
+        self.pred = tf.placeholder(tf.float32, shape=(None, 1), name='pred_label')
         with tf.variable_scope('discriminator_model'):
             self.predict = self.model(config=config)
-            self.loss_reg = self.loss_regularization()
+            self.loss_reg = self.loss_regularization(config=config)
             self.loss_real = self.loss_realism()
-            self.loss = self.combined_loss(config=config)
+            self.loss = self.combined_loss()
             self.optimize = self.optimizer(config=config)
 
-    @base_utils.config_checker(['refiner_initializer'])
+    @base_utils.config_checker(['refiner_initializer',
+                                'num_resnet_blocks',
+                                'num_feat_per_resnet_block',
+                                'kernel_size_resnet_block'])
     def model(self, config=None):
         with tf.variable_scope('model', initializer=config.refiner_initializer,
                                reuse=tf.AUTO_REUSE):
             x = self.image
             tf.summary.image('input_image', x)
+
+            # Quick function that implements
+            def resnet_block(input, num_features, kernel_size):
+                x = slim.conv2d(input, num_features, kernel_size, padding='same')
+                output = tf.concat([x, input], axis=3)
+                return output
+
+            for _ in range(config.num_resnet_blocks):
+                x = resnet_block(x, config.num_feat_per_resnet_block, config.kernel_size_resnet_block)
+            x = slim.conv2d(x, config.image_channels, [1, 1], scope='final_resnet_conv')
         return x
 
-    @base_utils.config_checker(['regularization_lambda'])
-    def combined_loss(self, config=None):
+    def combined_loss(self):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
-            loss = tf.add(self.loss_real,
-                          tf.scalar_mul(config.regularization_lambda,
-                                        self.loss_reg))
+            loss = tf.add(self.loss_real, self.loss_reg)
             tf.summary.scalar('loss', loss)
         return loss
 
@@ -57,9 +67,11 @@ class RefinerModel(BaseModel):
             tf.summary.scalar('loss_realism', loss)
         return loss
 
-    def loss_regularization(self):
+    @base_utils.config_checker(['regularization_lambda'])
+    def loss_regularization(self, config=None):
         with tf.variable_scope('loss_regularization', reuse=tf.AUTO_REUSE):
-            loss = tf.losses.cosine_distance(predictions=self.image,
-                                             labels=self.predict)
+            loss = tf.losses.absolute_difference(predictions=self.image,
+                                                 labels=self.predict,
+                                                 weights=config.regularization_lambda)
             tf.summary.scalar('loss_regularization', loss)
         return loss

@@ -20,10 +20,12 @@ class BaseModel(object):
                                 'image_channels',
                                 'grayscale'])
     def __init__(self, config=None):
+        if config.grayscale:
+            config.image_channels = 1
         self.image = tf.placeholder(tf.float32, shape=(None,
                                                        config.image_height,
                                                        config.image_width,
-                                                       1 if config.grayscale else config.image_channels),
+                                                       config.image_channels),
                                     name='input_image')
 
     @base_utils.config_checker(['learning_rate', 'optimizer_type'])

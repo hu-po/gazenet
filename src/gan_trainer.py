@@ -93,16 +93,16 @@ def run_training(config=None):
                 synth_image = sess.run(synth_batch)
                 # Feed the synthetic images through the refiner, producing refined images
                 refined_image = sess.run([refiner_model.predict],
-                                         feed_dict={'image': synth_image})
+                                         feed_dict={refiner_model.image: synth_image})
                 # Feed the refined images through the discriminator to get predicted labels (fake or real?)
                 pred_label = sess.run([discrim_model.predict],
-                                      feed_dict={'image': refined_image})
+                                      feed_dict={discrim_model.image: refined_image})
                 # Feed the predicted labels back through the refiner model to train refiner
                 # TODO: This leads to double-evaluation of the synthetic image batch, how to improve?
                 _, refiner_summary = sess.run([refiner_model.optimize,
                                                merged_summary_op],
-                                              feed_dict={'pred_label': pred_label,
-                                                         'image': synth_image})
+                                              feed_dict={refiner_model.pred: pred_label,
+                                                         refiner_model.image: synth_image})
                 if refiner_step % config.refiner_summary_every_n_steps == 0:
                     num_steps_elapsed = train_step * config.num_refiner_steps + refiner_step
                     refiner_writer.add_summary(refiner_summary, num_steps_elapsed)
@@ -112,7 +112,7 @@ def run_training(config=None):
                 synth_image = sess.run(synth_batch)
                 real_image = sess.run(real_batch)
                 # Feed synthetic images through refiner network
-                refined_image = sess.run([refiner_model.predict], feed_dict={'image': synth_image})
+                refined_image = sess.run([refiner_model.predict], feed_dict={refiner_model.image: synth_image})
                 # Shuffle together refined synthetic and real images in batch
                 combined_images = tf.concat([real_image, refined_image], axis=0)
                 combined_labels = tf.concat([tf.ones_like(real_image),
@@ -122,8 +122,8 @@ def run_training(config=None):
                 # Train discriminator network using mixed images
                 _, discrim_summary = sess.run([discrim_model.optimize,
                                                merged_summary_op],
-                                              feed_dict={'label': mixed_label,
-                                                         'image': mixed_image})
+                                              feed_dict={discrim_model.label: mixed_label,
+                                                         discrim_model.image: mixed_image})
                 if discrim_step % config.discrim_summary_every_n_steps == 0:
                     num_steps_elapsed = train_step * config.num_discrim_steps + discrim_step
                     discrim_writer.add_summary(discrim_summary, num_steps_elapsed)
