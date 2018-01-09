@@ -28,6 +28,14 @@ class BaseModel(object):
                                                        config.image_channels),
                                     name='input_image')
 
+        # List of summaries in this model class
+        self.summaries = []
+
+    def add_summary(self, name, value):
+        # Creates a summary object and adds it to the summaries list for the model class
+        s = tf.summary.scalar(name, value)
+        self.summaries.append(s)
+
     @base_utils.config_checker(['learning_rate', 'optimizer_type'])
     def optimizer(self, config=None):
         with tf.variable_scope('optimizer', reuse=tf.AUTO_REUSE):

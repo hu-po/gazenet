@@ -34,7 +34,7 @@ class DiscriminatorModel(BaseModel):
         with tf.variable_scope('model', initializer=config.discrim_initializer,
                                reuse=tf.AUTO_REUSE):
             x = self.image
-            tf.summary.image('input_image', x)
+            self.add_summary('input_image', x)
             x = slim.conv2d(x, 96, [3, 3], stride=2, scope='conv1')
             x = slim.conv2d(x, 64, [3, 3], stride=2, scope='conv2')
             x = slim.max_pool2d(x, [3, 3], scope='pool1')
@@ -50,5 +50,5 @@ class DiscriminatorModel(BaseModel):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
             loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.predict,
                                                            labels=self.label)
-            tf.summary.scalar('loss', loss)
+            self.add_summary('loss', loss)
         return loss

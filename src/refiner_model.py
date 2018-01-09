@@ -39,7 +39,7 @@ class RefinerModel(BaseModel):
         with tf.variable_scope('model', initializer=config.refiner_initializer,
                                reuse=tf.AUTO_REUSE):
             x = self.image
-            tf.summary.image('input_image', x)
+            self.add_summary('input_image', x)
 
             # Quick function that implements
             def resnet_block(input, num_features, kernel_size):
@@ -55,7 +55,7 @@ class RefinerModel(BaseModel):
     def combined_loss(self):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
             loss = tf.add(self.loss_real, self.loss_reg)
-            tf.summary.scalar('loss', loss)
+            self.add_summary('loss', loss)
         return loss
 
     def loss_realism(self):
@@ -64,7 +64,7 @@ class RefinerModel(BaseModel):
             labels = tf.zeros_like(self.pred)
             loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.pred,
                                                            labels=labels)
-            tf.summary.scalar('loss_realism', loss)
+            self.add_summary('loss_realism', loss)
         return loss
 
     @base_utils.config_checker(['regularization_lambda'])
@@ -73,5 +73,5 @@ class RefinerModel(BaseModel):
             loss = tf.losses.absolute_difference(predictions=self.image,
                                                  labels=self.predict,
                                                  weights=config.regularization_lambda)
-            tf.summary.scalar('loss_regularization', loss)
+            self.add_summary('loss_regularization', loss)
         return loss
