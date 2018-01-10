@@ -5,8 +5,6 @@ public class GazeDataset : MonoBehaviour {
     
     // Head contains the left and right eyes
     public GameObject head;
-    //public GameObject leftEye;
-    //public GameObject rightEye;
 
     // The look point is where the eyes will stare at
     public GameObject lookPoint;
@@ -15,8 +13,9 @@ public class GazeDataset : MonoBehaviour {
     public Camera gazeCamera;
 
     // Directories for data storage
-    private string datasetName = "04012018_test";
+    private string datasetName = "100118_fixedhead";
     private string dataPath;
+    private string imageName;
 
 	// Use this for initialization
 	void Start () {
@@ -25,14 +24,26 @@ public class GazeDataset : MonoBehaviour {
         SetupDataDir();
 
         // Start data collection
-        //float startTime = 1.0f; // Start time in seconds
-        //float repeatTime = 0.01f; // Repeat time in seconds
-        //InvokeRepeating("GazeSimStep", startTime, repeatTime);
+        float startTime = 1.0f; // Start time in seconds
+        float delay = 0.02f; // Delay needed to make sure camera acptures updated scene
+        float repeatTime = 0.04f; // Repeat time in seconds
+        InvokeRepeating("UpdateGazeScene", startTime, repeatTime);
+        InvokeRepeating("SaveImage", startTime + delay, repeatTime);
     }
 
-    private void Update()
+    private void UpdateGazeScene()
     {
-        GazeSimStep();
+        // Move head within head space and look point within screen
+        float[] lookPos = MoveLookPoint();
+        //float[] headPos = MoveHead();
+
+        // Make the eyes look at the look point
+        RotateHead();
+
+        // Name of saved image contains the target (lookPos)
+        lookPos[0] += 0.5f; // Add 0.5 to remove negative values
+        lookPos[1] += 0.5f;
+        imageName = lookPos[0].ToString("0.00") + '_' + lookPos[1].ToString("0.00") + ".png";
     }
 
     private void SetupDataDir()
@@ -44,24 +55,6 @@ public class GazeDataset : MonoBehaviour {
             Directory.Delete(dataPath, true);
         }
         Directory.CreateDirectory(dataPath);
-    }
-
-    public void GazeSimStep()
-    {
-        // Move head within head space and look point within screen
-        float[] lookPos = MoveLookPoint();
-        float[] headPos = MoveHead();
-
-        // Make the eyes look at the look point
-        MoveEyes();
-
-        // Name of saved image contains the target (lookPos)
-        lookPos[0] += 0.5f; // Add 0.5 to remove negative values
-        lookPos[1] += 0.5f;
-        string imageName = lookPos[0].ToString("0.00") + '_' + lookPos[1].ToString("0.00") + ".jpg";
-
-        // Save camera output to file
-        SaveImage(imageName);
     }
 
     private float[] MoveLookPoint()
@@ -87,22 +80,24 @@ public class GazeDataset : MonoBehaviour {
         return newPos;
     }
 
-    private void MoveEyes()
+    private void RotateHead()
     {
         // Use LookAt function to get head to look at lookpoint
-        head.transform.LookAt(2 * head.transform.position - lookPoint.transform.position);
+        head.transform.LookAt(lookPoint.transform.position);
 
         // TODO: More complicated motion with head and eyes being seperate
     }
 
-    private void SaveImage(string savename)
+    private void SaveImage()
     {
+        // Renders camera to a texture, saves texture to a PNG image
+        gazeCamera.Render();
         RenderTexture.active = gazeCamera.targetTexture;
         Texture2D image = new Texture2D(gazeCamera.targetTexture.width, gazeCamera.targetTexture.height, TextureFormat.ARGB32, false);
         image.ReadPixels(new Rect(0, 0, gazeCamera.targetTexture.width, gazeCamera.targetTexture.height), 0, 0);
         image.Apply();
         RenderTexture.active = null;
         byte[] bytes = image.EncodeToPNG();
-        File.WriteAllBytes(Path.Combine(dataPath, savename), bytes);
+        File.WriteAllBytes(Path.Combine(dataPath, imageName), bytes);
     }
 }

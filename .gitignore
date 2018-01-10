@@ -21,6 +21,8 @@ __pycache__*
 **/[Bb]uild/
 **/[Bb]uilds/
 **/Assets/AssetStoreTools*
+**/Assets/MORPH3D/*
+**/Assets/StreamingAssets/*
 **/.vs/
 sysinfo.txt
 *.stackdump
