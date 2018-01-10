@@ -114,8 +114,8 @@ def run_training(config=None):
                 refined_image = sess.run(refiner_model.predict, feed_dict={refiner_model.image: synth_image})
                 real_image = sess.run(real_batch)
                 mixed_batch = sess.run(discrim_model.mixed_image_batch,
-                                                    feed_dict={discrim_model.real_image:real_image,
-                                                               discrim_model.refined_image:refined_image})
+                                       feed_dict={discrim_model.real_image: real_image,
+                                                  discrim_model.refined_image: refined_image})
                 mixed_image = mixed_batch[0]
                 mixed_label = mixed_batch[1]
                 # Train discriminator network using mixed images
@@ -126,13 +126,13 @@ def run_training(config=None):
                 if discrim_step % config.discrim_summary_every_n_steps == 0:
                     num_steps_elapsed = train_step * config.num_discrim_steps + discrim_step
                     discrim_writer.add_summary(discrim_summary, num_steps_elapsed)
-                discrim_step_duration = time.time() - discrim_step_start
-                print('Step %d : refiner (%.3f sec) and discriminator (%.3f sec)' % (train_step,
-                                                                                     refiner_step_duration,
-                                                                                     discrim_step_duration))
-                # Close both writers
-                discrim_writer.close()
-                refiner_writer.close()
+            discrim_step_duration = time.time() - discrim_step_start
+            print('Step %d : refiner (%.3f sec) and discriminator (%.3f sec)' % (train_step,
+                                                                                 refiner_step_duration,
+                                                                                 discrim_step_duration))
+        # Close both writers
+        discrim_writer.close()
+        refiner_writer.close()
 
 
 def main():

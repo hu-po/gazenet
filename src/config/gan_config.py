@@ -15,28 +15,24 @@ class GANConfig(BaseConfig):
         self.synth_dataset_name = '04012018_headlook'
         self.real_dataset_name = '080118_real'
         # Clip the dataset sizes
-        self.num_synth_images = 100
-        self.num_real_images = 10
+        self.num_synth_images = 1000
+        self.num_real_images = 100
 
         # Training parameters (from Algorithm 1 in [1])
-        self.num_training_steps = 5  # T
-        self.num_refiner_steps = 1  # Kg
-        self.num_discrim_steps = 1  # Kd
-        self.synth_batch_size = 2
-        self.real_batch_size = 2
+        self.num_training_steps = 100  # T
+        self.num_refiner_steps = 200  # Kg
+        self.num_discrim_steps = 50  # Kd
+        self.synth_batch_size = 8
+        self.real_batch_size = 8
         # Bigger buffer means better shuffling but slower start up and more memory used.
-        self.synth_buffer_size = 4
-        self.real_buffer_size = 4
+        self.synth_buffer_size = 16
+        self.real_buffer_size = 16
         # Log saving every n steps
-        self.discrim_summary_every_n_steps = 50
         self.refiner_summary_every_n_steps = 50
+        self.discrim_summary_every_n_steps = 10
         # Save model checkpoint
-        self.save_model = True
+        self.save_model = False
         self.save_every_n_train_steps = 50
-        # Batch of
-        self.discrim_batch_size = 2
-        self.discrim_capacity = 10
-        self.discrim_min_after_dequeue = 5
 
         # Refiner Model
         self.refiner_initializer = slim.xavier_initializer()

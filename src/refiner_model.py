@@ -24,7 +24,7 @@ class RefinerModel(BaseModel):
         config.optimizer_type = config.refiner_optimizer_type
         super().__init__(config=config)
         self.label = tf.placeholder(tf.float32, shape=(None, 2), name='pred_label')
-        with tf.variable_scope('discriminator_model'):
+        with tf.variable_scope('refiner_model'):
             self.predict = self.model(config=config)
             self.loss_reg = self.loss_regularization(config=config)
             self.loss_real = self.loss_realism()
@@ -50,6 +50,7 @@ class RefinerModel(BaseModel):
             for _ in range(config.num_resnet_blocks):
                 x = resnet_block(x, config.num_feat_per_resnet_block, config.kernel_size_resnet_block)
             x = slim.conv2d(x, config.image_channels, [1, 1], scope='final_resnet_conv')
+            self.add_summary('output_image', x, 'image')
         return x
 
     def combined_loss(self):

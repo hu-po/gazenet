@@ -40,7 +40,7 @@ class DiscriminatorModel(BaseModel):
             self.predict = self.model(config=config)
             self.loss = self.discrim_loss()
             self.optimize = self.optimizer(config=config)
-            self.mixed_image_batch = self.create_mixed_image_batch(config=config)
+            self.mixed_image_batch = self.create_mixed_image_batch()
 
     @base_utils.config_checker(['discrim_initializer'])
     def model(self, config=None):
@@ -59,10 +59,7 @@ class DiscriminatorModel(BaseModel):
             x = slim.softmax(x)
         return x
 
-    @base_utils.config_checker(['discrim_batch_size',
-                                'discrim_capacity',
-                                'discrim_min_after_dequeue'])
-    def create_mixed_image_batch(self, config=None):
+    def create_mixed_image_batch(self):
         # Shuffle together refined synthetic and real images in batch
         combined_images = tf.concat([self.real_image, self.refined_image], axis=0)
         # Create label vectors of same length as image batches (0=fake, 1=real)
