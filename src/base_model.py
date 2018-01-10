@@ -20,8 +20,6 @@ class BaseModel(object):
                                 'image_channels',
                                 'grayscale'])
     def __init__(self, config=None):
-        if config.grayscale:
-            config.image_channels = 1
         self.image = tf.placeholder(tf.float32, shape=(None,
                                                        config.image_height,
                                                        config.image_width,

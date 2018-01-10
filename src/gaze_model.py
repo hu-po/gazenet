@@ -21,6 +21,7 @@ The output:
 * A trained refiner network
 '''
 
+
 class GazeModel(BaseModel):
 
     @base_utils.config_checker()
@@ -33,24 +34,34 @@ class GazeModel(BaseModel):
             self.loss = self.mse()
             self.optimize = self.optimizer(config=config)
 
-    @base_utils.config_checker(['dropout_keep_prob'])
+    @base_utils.config_checker(['dropout_keep_prob',
+                                'num_conv_layers_1',
+                                'num_feature_1',
+                                'kernel_1',
+                                'max_pool_1',
+                                'num_conv_layers_2',
+                                'num_feature_2',
+                                'kernel_2',
+                                'max_pool_2',
+                                'num_fc_layers',
+                                'fc_layer_num'])
     def model(self, config=None):
         with tf.variable_scope('model', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
             x = self.image
-            tf.summary.image('input_image', x)
-            x = slim.conv2d(x, 32, [3, 3], scope='conv1')
-            x = slim.conv2d(x, 32, [3, 3], scope='conv2')
-            x = slim.conv2d(x, 64, [3, 3], scope='conv3')
-            x = slim.max_pool2d(x, [3, 3], stride=2, scope='pool1')
-            x = slim.conv2d(x, 64, [3, 3], scope='conv4')
-            x = slim.conv2d(x, 128, [3, 3], scope='conv5')
-            x = slim.max_pool2d(x, [2, 2], scope='pool2')
+            # tf.summary.image('input_image', x)
+            for _ in range(config.num_conv_layers_1):
+                x = slim.conv2d(x, config.num_feature_1, kernel_size=config.kernel_1)
+            if config.max_pool_1:
+                x = slim.max_pool2d(x, [2, 2], scope='pool1')
+            for _ in range(config.num_conv_layers_2):
+                x = slim.conv2d(x, config.num_feature_2, kernel_size=config.kernel_2)
+            if config.max_pool_2:
+                x = slim.max_pool2d(x, [2, 2], scope='pool2')
             x = slim.flatten(x)
-            x = slim.dropout(x, config.dropout_keep_prob,
-                             is_training=self.train_mode, scope='dropout1')
-            x = slim.fully_connected(x, 256, scope='fc2')
-            x = slim.dropout(x, config.dropout_keep_prob,
-                             is_training=self.train_mode, scope='dropout2')
+            x = slim.dropout(x, config.dropout_keep_prob, is_training=self.train_mode)
+            for _ in range(config.num_fc_layers):
+                x = slim.fully_connected(x, config.fc_layer_num)
+                x = slim.dropout(x, config.dropout_keep_prob, is_training=self.train_mode)
             x = slim.fully_connected(x, 2, activation_fn=None)
         return x
 

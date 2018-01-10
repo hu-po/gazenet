@@ -19,7 +19,7 @@ def decode_image(serialized_example, config=None):
         serialized_example,
         features={'image_raw': tf.FixedLenFeature([], tf.string)})
     image = tf.decode_raw(features['image_raw'], tf.uint8)
-    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels])
+    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels_input])
     image = tf.reshape(image, image_shape)
     return image
 
@@ -43,7 +43,7 @@ def decode_gaze(serialized_example, config=None):
     gaze_y = tf.cast(features['gaze_y'], tf.int32)
     target = [gaze_x, gaze_y]
     image = tf.decode_raw(features['image_raw'], tf.uint8)
-    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels])
+    image_shape = tf.stack([config.image_height, config.image_width, config.image_channels_input])
     image = tf.reshape(image, image_shape)
     return image, target
 

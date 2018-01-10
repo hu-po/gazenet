@@ -51,7 +51,8 @@ def _test_feed(config=None):
     return iterator, iterator.get_next()
 
 
-@base_utils.config_checker(['log_path',
+@base_utils.config_checker(['train_log_path',
+                            'test_log_path',
                             'checkpoint_path',
                             'num_epochs',
                             'save_model',
@@ -81,7 +82,7 @@ def run_training(config=None):
         train_writer = tf.summary.FileWriter(config.train_log_path, sess.graph)
         test_writer = tf.summary.FileWriter(config.test_log_path, sess.graph)
         # Saver for just the model
-        saver = tf.train.Saver()#{'gaze_net': model.predict})
+        saver = tf.train.Saver()  # {'gaze_net': model.predict})
         for epoch_idx in range(config.num_epochs):
             # Training
             epoch_train_start = time.time()
@@ -123,12 +124,25 @@ def run_training(config=None):
         # Close the log writers
         train_writer.close()
         test_writer.close()
-
+    # Clean out the trash
+    tf.reset_default_graph()
 
 def main():
+    # Create config and convert dataset to usable form
     config = GazeConfig()
     base_utils.gazedata_to_tfrecords(config=config)
-    run_training(config=config)
+
+    # Permute hyperparams to generate all runs
+    config.permute_hyperparams()
+
+    for _ in range(len(config.runs)):
+        try:
+            config.set_hyperparams()
+            config.create_run_directories()
+            run_training(config=config)
+        except Exception as e:  # If something wierd happens because of the particular hyperparameters
+            # Clear the graph just in case there is lingering stuff
+            tf.reset_default_graph()
 
 
 if __name__ == '__main__':
