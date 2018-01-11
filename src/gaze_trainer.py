@@ -82,7 +82,8 @@ def run_training(config=None):
         # Initialize variables
         sess.run(init_op)
         # Model saver and log writers
-        writer = tf.summary.FileWriter(config.run_log_path, sess.graph)
+        test_writer = tf.summary.FileWriter(os.path.join(config.run_log_path, 'test'), sess.graph)
+        train_writer = tf.summary.FileWriter(os.path.join(config.run_log_path, 'train'), sess.graph)
         saver = tf.train.Saver()
         for epoch_idx in range(config.num_epochs):
             # Training
@@ -93,10 +94,11 @@ def run_training(config=None):
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
                     image_batch, label_batch = sess.run(train_batch)
-                    _, loss = sess.run([model.optimize,
-                                        model.loss], feed_dict={model.image: image_batch,
-                                                                model.label: label_batch,
-                                                                model.is_training: True})
+                    _, loss, train_summary = sess.run([model.optimize,
+                                                       model.loss,
+                                                       gaze_summary], feed_dict={model.image: image_batch,
+                                                                                 model.label: label_batch,
+                                                                                 model.is_training: True})
                     num_train_steps += 1
             except tf.errors.OutOfRangeError:
                 epoch_train_duration = time.time() - epoch_train_start
@@ -111,10 +113,10 @@ def run_training(config=None):
             epoch_test_start = time.time()
             sess.run(test_iterator.initializer)
             image_batch, label_batch = sess.run(test_batch)
-            loss, summary = sess.run([model.loss,
-                                      gaze_summary], feed_dict={model.image: image_batch,
-                                                                model.label: label_batch,
-                                                                model.is_training: False})
+            loss, test_summary = sess.run([model.loss,
+                                           gaze_summary], feed_dict={model.image: image_batch,
+                                                                     model.label: label_batch,
+                                                                     model.is_training: False})
 
             epoch_test_duration = time.time() - epoch_test_start
             print('Epoch %d: Testing (%.3f sec) - loss: %.2f' % (epoch_idx,
@@ -123,15 +125,18 @@ def run_training(config=None):
 
             # Early stopping breaks out if loss hasn't decreased in N steps
             if best_loss < loss:
-                best_loss = loss
                 steps_since_loss_decrease += 1
+            if loss < best_loss:
+                best_loss = loss
             if steps_since_loss_decrease >= config.patience:
                 print('Loss no longer decreasing, ending run')
                 break
             # Write summary to log file
-            writer.add_summary(summary, (epoch_idx + 1))
+            test_writer.add_summary(test_summary, (epoch_idx + 1))
+            train_writer.add_summary(train_summary, (epoch_idx + 1))
         # Close the log writers
-        writer.close()
+        test_writer.close()
+        train_writer.close()
     # Clean out the trash
     tf.reset_default_graph()
 

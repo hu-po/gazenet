@@ -34,14 +34,6 @@ def _int64_feature(value):
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-@config_checker(['patience'])
-def early_stopping(best_loss, loss, config=None):
-
-
-
-    return should_stop, best_loss
-
-
 
 @config_checker(['filename_regex'])
 def _extract_target_from_gazefilename(path_string, config=None):

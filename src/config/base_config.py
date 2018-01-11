@@ -46,6 +46,7 @@ class BaseConfig(object):
         # Dictionary of all hyperparameter values
         self.hyperparams = OrderedDict()
 
+        # List of all runs within experiment
         self.runs = []
 
 
@@ -84,6 +85,7 @@ class BaseConfig(object):
             setattr(self, key, value)
 
     def _create_run_directories(self):
+        self.run_specific_name = ''
         for key, value in self.run_hyperparams.items():
             str_value = str(value)
             if isinstance(value, list):
