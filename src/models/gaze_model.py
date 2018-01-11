@@ -21,7 +21,8 @@ class GazeModel(BaseModel):
     @base_utils.config_checker()
     def __init__(self, config=None):
         super().__init__(config=config)
-        self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
+        with tf.variable_scope('input'):
+            self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
         self.build_graph(config=config)
 
     @base_utils.config_checker()
@@ -34,11 +35,12 @@ class GazeModel(BaseModel):
             x = layers.dim_reductor(x, self, config=config)
             x = layers.fc_head(x, self, config=config)
             # Final layer for regression has no activation function
-            x = slim.fully_connected(x, 2, activation_fn=None)
+            x = slim.fully_connected(x, 2, activation_fn=None, scope='output')
         return x
 
     def loss_func(self, config=None):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
-            mse = tf.losses.mean_squared_error(labels=self.label, predictions=self.predict)
+            self.debug = tf.Print(self.label, [self.label, self.predict])
+            mse = tf.losses.mean_squared_error(labels=self.label, predictions=self.predict, scope='mse')
             self.add_summary('mse', mse, 'scalar')
         return mse

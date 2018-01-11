@@ -17,15 +17,15 @@ class GazeConfig(BaseConfig):
         self.filename_regex = '(\d.\d+)_(\d.\d+).png'
         self.train_test_split = 0.95
         # Brightness Augmentation
-        self.random_brigtness = True
+        self.random_brigtness = False
         self.brightnes_max_delta = 0.1
         # Contrast Augmentation
-        self.random_contrast = True
+        self.random_contrast = False
         self.contrast_lower = 0.01
         self.contrast_upper = 0.2
 
         # Training parameters
-        self.num_epochs = 100
+        self.num_epochs = 30
         self.batch_size = 16
         # Early stopping
         self.patience = 3
@@ -47,13 +47,14 @@ class GazeConfig(BaseConfig):
         self.hyperparams['fc_layers'] = [[128, 128, 64],
                                          [256, 32],
                                          [64, 64],
+                                         [256, 64],
                                          [128, 32]]
-        self.hyperparams['dimred_feat'] = [32, 64]
+        self.hyperparams['dimred_feat'] = [32, 64, 128]
         self.hyperparams['dimred_kernel'] = [4, 6, 8]
         self.hyperparams['dimred_stride'] = [2, 4]
         # Resnet hyperparams
-        self.hyperparams['num_rb'] = [2, 3, 4]
-        self.hyperparams['rb_feat'] = [8, 16, 32]
+        self.hyperparams['num_rb'] = [2, 3, 4, 5]
+        self.hyperparams['rb_feat'] = [8, 16, 32, 64]
         self.hyperparams['rb_kernel'] = [3, 4]
         self.hyperparams['batch_norm'] = [True, False]
 

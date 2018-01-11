@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import tensorflow as tf
+from tensorflow.python import debug as tf_debug
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
@@ -78,7 +79,8 @@ def run_training(config=None):
     best_loss = 0
     steps_since_loss_decrease = -1
 
-    with tf.Session() as sess:
+    # with tf.Session() as sess:
+    with tf_debug.LocalCLIDebugWrapperSession(tf.Session()) as sess:
         # Initialize variables
         sess.run(init_op)
         # Model saver and log writers
@@ -113,8 +115,9 @@ def run_training(config=None):
             epoch_test_start = time.time()
             sess.run(test_iterator.initializer)
             image_batch, label_batch = sess.run(test_batch)
-            loss, test_summary = sess.run([model.loss,
-                                           gaze_summary], feed_dict={model.image: image_batch,
+            loss, test_summary, _ = sess.run([model.loss,
+                                           gaze_summary,
+                                           model.debug], feed_dict={model.image: image_batch,
                                                                      model.label: label_batch,
                                                                      model.is_training: False})
 
