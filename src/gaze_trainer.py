@@ -72,7 +72,11 @@ def run_training(config=None):
                        tf.local_variables_initializer())
 
     # Summary ops
-    gaze_summary = tf.summary.merge(GazeModel.summaries)
+    gaze_summary = tf.summary.merge(model.summaries)
+
+    # Early stopping params
+    best_loss = 0
+    steps_since_loss_decrease = -1
 
     with tf.Session() as sess:
         # Initialize variables
@@ -108,14 +112,23 @@ def run_training(config=None):
             sess.run(test_iterator.initializer)
             image_batch, label_batch = sess.run(test_batch)
             loss, summary = sess.run([model.loss,
-                                           gaze_summary], feed_dict={model.image: image_batch,
-                                                                          model.label: label_batch,
-                                                                          model.is_training: False})
+                                      gaze_summary], feed_dict={model.image: image_batch,
+                                                                model.label: label_batch,
+                                                                model.is_training: False})
 
             epoch_test_duration = time.time() - epoch_test_start
             print('Epoch %d: Testing (%.3f sec) - loss: %.2f' % (epoch_idx,
                                                                  epoch_test_duration,
                                                                  loss))
+
+            # Early stopping breaks out if loss hasn't decreased in N steps
+            if best_loss < loss:
+                best_loss = loss
+                steps_since_loss_decrease += 1
+            if steps_since_loss_decrease >= config.patience:
+                print('Loss no longer decreasing, ending run')
+                break
+            # Write summary to log file
             writer.add_summary(summary, (epoch_idx + 1))
         # Close the log writers
         writer.close()

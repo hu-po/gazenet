@@ -61,7 +61,7 @@ class BaseConfig(object):
 
     def prepare_run(self, idx):
         self._set_hyperparams(idx)
-        self.create_run_directories()
+        self._create_run_directories()
 
     def _generate_runs(self):
         permutation_builder = []
@@ -83,7 +83,7 @@ class BaseConfig(object):
             self.run_hyperparams[key] = value
             setattr(self, key, value)
 
-    def create_run_directories(self):
+    def _create_run_directories(self):
         for key, value in self.run_hyperparams.items():
             str_value = str(value)
             if isinstance(value, list):

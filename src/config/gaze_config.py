@@ -27,6 +27,8 @@ class GazeConfig(BaseConfig):
         # Training parameters
         self.num_epochs = 100
         self.batch_size = 16
+        # Early stopping
+        self.patience = 3
         # Number of train examples (if you want to limit training data)
         self.num_train_examples = 8000
         # Number of test examples in each validation step
