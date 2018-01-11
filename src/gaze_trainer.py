@@ -6,7 +6,7 @@ import tensorflow as tf
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-from src.gaze_model import GazeModel
+from src.models.gaze_model import GazeModel
 from src.config.gaze_config import GazeConfig
 import src.utils.train_utils as train_utils
 import src.utils.base_utils as base_utils
@@ -88,6 +88,7 @@ def run_training(config=None):
             epoch_train_start = time.time()
             num_train_steps = 0
             sess.run(train_iterator.initializer)
+            #TODO: Learning rate decay based on epoch
             try:  # Keep feeding batches in until OutOfRangeError (aka one epoch)
                 while True:
                     image_batch, label_batch = sess.run(train_batch)

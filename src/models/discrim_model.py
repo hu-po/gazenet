@@ -7,7 +7,7 @@ mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
 import src.utils.base_utils as base_utils
-from src.base_model import BaseModel
+from src.models.base_model import BaseModel
 
 '''
 The discriminator network differentiates between synthetic and real images.

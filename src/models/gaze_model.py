@@ -7,7 +7,7 @@ mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
 import src.utils.base_utils as base_utils
-from src.base_model import BaseModel
+from src.models.base_model import BaseModel
 
 '''
 This network outputs the gaze location for a given webcam image.
@@ -48,6 +48,9 @@ class GazeModel(BaseModel):
     def model(self, config=None):
         with tf.variable_scope('model', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
             x = self.image
+            # TODO: Add batch normalization
+            # TODO: More residual skip connections
+            # TODO: Larger number of filters per layers
             # tf.summary.image('input_image', x)
             for _ in range(config.num_conv_layers_1):
                 x = slim.conv2d(x, config.num_feature_1, kernel_size=config.kernel_1)

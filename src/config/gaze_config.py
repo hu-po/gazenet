@@ -26,7 +26,7 @@ class GazeConfig(BaseConfig):
         self.contrast_upper = 0.2
 
         # Training parameters
-        self.num_epochs = 1
+        self.num_epochs = 100
         self.batch_size = 16
         # Number of train examples (if you want to limit training data)
         self.num_train_examples = 8000
