@@ -3,7 +3,7 @@ import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
-mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
 import src.utils.base_utils as base_utils

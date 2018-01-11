@@ -11,13 +11,27 @@ The base config class is extended to create all other config classes
 
 class BaseConfig(object):
 
-    def __init__(self):
+    def __init__(self, experiment_name='mystery'):
         # Root directory for entire repo
         self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         # Local directories contain logs, datasets, saved model
         self.data_dir = os.path.join(self.root_dir, 'local', 'data')
         self.log_dir = os.path.join(self.root_dir, 'local', 'logs')
         self.model_dir = os.path.join(self.root_dir, 'local', 'models')
+
+        # Create experiment specific log and checkpoint directories
+        d = datetime.datetime.today()
+        experiment_name = '%s_%sm_%sd_%shr_%smin' % (experiment_name, d.month, d.day, d.hour, d.minute)
+        self.log_path = os.path.join(self.log_dir, experiment_name)
+        self.make_path(self.log_path)
+        self.checkpoint_path = os.path.join(self.model_dir, experiment_name)
+        self.make_path(self.checkpoint_path)
+        print('Created log and checkpoint directories for experiment %s' % experiment_name)
+
+        # Each run within an experiment will have a run-specific name
+        self.run_specific_name = ''
+        self.run_log_path = None
+        self.run_checkpoint_path = None
 
         # Images dimmensions
         self.image_width = 128
@@ -31,42 +45,51 @@ class BaseConfig(object):
 
         # Dictionary of all hyperparameter values
         self.hyperparams = OrderedDict()
-        self.run_idx = 0
+
         self.runs = []
+
 
     @staticmethod
     def make_path(path):
         if not os.path.exists(path):
             os.mkdir(path)
 
-    def permute_hyperparams(self):
+    def prepare_experiment(self):
+        # Generate all runs (all possible permutations of hyperparameters)
+        self._generate_runs()
+        self.num_runs = len(self.runs)
+
+    def prepare_run(self, idx):
+        self._set_hyperparams(idx)
+        self.create_run_directories()
+
+    def _generate_runs(self):
         permutation_builder = []
         for key, value in self.hyperparams.items():
             permutation_builder.append(range(len(value)))
-        # Get all possible perumations from the permuation builder
+        # Get all possible permutations from the permutations builder
         permutations = list(itertools.product(*permutation_builder))
         permutations = [list(a) for a in permutations]
-        # Shuffle for trying out more different combinations
+        # Shuffle prevents it from being a grid search
         random.shuffle(permutations)
         # Set class property
         self.runs = permutations
 
-    def set_hyperparams(self):
-        permutation = self.runs[self.run_idx]
+    def _set_hyperparams(self, idx):
+        permutation = self.runs[idx]
         self.run_hyperparams = OrderedDict()
         for i, key in enumerate(self.hyperparams.keys()):
             value = self.hyperparams[key][permutation[i]]
             self.run_hyperparams[key] = value
             setattr(self, key, value)
-        self.run_idx += 1
 
     def create_run_directories(self):
-        d = datetime.datetime.today()
-        run_specific_name = '%s_%sm_%sd_%shr_%smin' % (self.net_name, d.month, d.day, d.hour, d.minute)
         for key, value in self.run_hyperparams.items():
-            run_specific_name += '_%s_%s' % (key, str(value))
-        self.log_path = os.path.join(self.log_dir, run_specific_name)
-        self.checkpoint_path = os.path.join(self.model_dir, run_specific_name)
+            str_value = str(value)
+            if isinstance(value, list):
+                str_value = '_'.join(str(a) for a in value)
+            self.run_specific_name += '_%s_%s' % (key, str_value)
+        self.run_log_path = os.path.join(self.log_path, self.run_specific_name)
         self.make_path(self.log_path)
+        self.run_checkpoint_path = os.path.join(self.checkpoint_path, self.run_specific_name)
         self.make_path(self.checkpoint_path)
-        print('Creating run directories for %s' % run_specific_name)

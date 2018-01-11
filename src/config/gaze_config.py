@@ -9,9 +9,8 @@ GazeConfig class contains parameters used to train the gaze models.
 class GazeConfig(BaseConfig):
 
     def __init__(self):
-        super().__init__()
-        # Net name is used to identify logs
-        self.net_name = 'gaze'
+        # Experiment name is the root directory for logs
+        super().__init__(experiment_name='res_batch_gaze')
         # Gazenet uses a single dataset
         self.dataset_name = '100118_fixedhead'
         # Train targets are taken from image filenames
@@ -39,41 +38,24 @@ class GazeConfig(BaseConfig):
         self.save_every_n_epochs = 50
         # Optimizer parameters
         self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
-        self.hyperparams['optimizer_type'] = ['rmsprop', 'sgd', 'adam']
+        self.hyperparams['optimizer_type'] = ['sgd', 'adam']
 
         # Model parameters
-        # self.hyperparams['dropout_keep_prob'] = [0.6]
-        # self.hyperparams['num_conv_layers_1'] = [2, 3]
-        # self.hyperparams['num_feature_1'] = [32, 64]
-        # self.hyperparams['kernel_1'] = [3, 4]
-        # self.hyperparams['max_pool_1'] = [True]
-        # self.hyperparams['num_conv_layers_2'] = [1, 2]
-        # self.hyperparams['num_feature_2'] = [64, 128]
-        # self.hyperparams['kernel_2'] = [3, 4]
-        # self.hyperparams['max_pool_2'] = [True]
-        # self.hyperparams['num_fc_layers'] = [1, 2]
-        # self.hyperparams['fc_layer_num'] = [32, 64, 128]
-
         self.dropout_keep_prob = 0.6
-        self.hyperparams['num_conv_layers_1'] = [2, 3]
-        self.hyperparams['num_feature_1'] = [32, 64]
-        self.hyperparams['kernel_1'] = [3, 4]
-        self.max_pool_1 = True
-        self.hyperparams['num_conv_layers_2'] = [1, 2]
-        self.hyperparams['num_feature_2'] = [64, 128]
-        self.hyperparams['kernel_2'] = [3, 4]
-        self.max_pool_2 = True
-        self.hyperparams['num_fc_layers'] = [1, 2]
-        self.hyperparams['fc_layer_num'] = [32, 64, 128]
+        self.hyperparams['fc_layers'] = [[128, 128, 64],
+                                         [256, 32],
+                                         [64, 64],
+                                         [128, 32]]
+        self.hyperparams['dimred_feat'] = [32, 64]
+        self.hyperparams['dimred_kernel'] = [4, 6, 8]
+        self.hyperparams['dimred_stride'] = [2, 4]
+        # Resnet hyperparams
+        self.hyperparams['num_rb'] = [2, 3, 4]
+        self.hyperparams['rb_feat'] = [8, 16, 32]
+        self.hyperparams['rb_kernel'] = [3, 4]
+        self.hyperparams['batch_norm'] = [True, False]
 
         # Dataset and tfrecord paths
         self.dataset_path = os.path.join(self.data_dir, self.dataset_name)
         self.train_tfrecord_path = os.path.join(self.dataset_path, 'train.tfrecords')
         self.test_tfrecord_path = os.path.join(self.dataset_path, 'test.tfrecords')
-
-    def create_run_directories(self):
-        super().create_run_directories()
-        self.train_log_path = os.path.join(self.log_path, 'train')
-        self.test_log_path = os.path.join(self.log_path, 'test')
-        self.make_path(self.train_log_path)
-        self.make_path(self.test_log_path)
