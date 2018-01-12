@@ -10,7 +10,6 @@ from src.models.discrim_model import DiscriminatorModel
 from src.models.refiner_model import RefinerModel
 from src.config.gan_config import GANConfig
 import src.utils.train_utils as train_utils
-import src.utils.base_utils as base_utils
 
 '''
 This file is used to train the GAN, which is composed of a refiner net and a 
@@ -33,8 +32,8 @@ def run_training(config=None):
     real_iterator, real_batch = train_utils.image_feed(config=config.fake_dataset)
 
     # Get images and labels from iterator, create model from class
-    refiner_model = RefinerModel(config=config)
-    discrim_model = DiscriminatorModel(config=config)
+    refiner_model = RefinerModel(config=config.refiner_model)
+    discrim_model = DiscriminatorModel(config=config.discrim_model)
 
     # Mixed batch to be fed to the discriminator during training
     real_images, refined_images, mixed_batch_op = train_utils.mixed_image_batch(config=config)
@@ -106,10 +105,8 @@ def run_training(config=None):
 
 
 def main():
-    # Create config and convert dataset to usable form
     config = GANConfig()
-    base_utils.image_to_tfrecords(config=config)
-    config.prepare_experiment()
+
     # Run training for every 'run' (different permutations of hyperparameters)
     for i in range(config.num_runs):
         config.prepare_run(i)

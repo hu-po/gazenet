@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import tensorflow.contrib.slim as slim
 from src.config.config import Config
+import src.utils.base_utils as base_utils
 
 '''
 This file contains all the parameters for training the GAN component of this project. Each
@@ -42,7 +43,8 @@ class FakeConfig(Config):
         self.batch_size = 8
         # Build the rest of the dataset related parameters
         self.build_dataset_config()
-
+        # Create tf record dataset from data dir
+        base_utils.image_to_tfrecords(config=self)
 
 class RealConfig(Config):
 
@@ -53,23 +55,25 @@ class RealConfig(Config):
         self.buffer_size = 16
         self.batch_size = 8
         self.build_dataset_config()
+        # Create tf record dataset from data dir
+        base_utils.image_to_tfrecords(config=self)
 
 
 class DiscrimConfig(Config):
 
     def __init__(self):
+        # This config contains hyperparameters
+        self.build_hyperparameter_config()
         # Log saving every n steps
         self.save_logs = True
         self.summary_every_n_steps = 50
         # Save model checkpoint
         self.save_model = False
         self.save_every_n_train_steps = 50
-
         # Optimizer parameters
         self.initializer = slim.xavier_initializer()
         self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
         self.hyperparams['optimizer_type'] = ['adam']
-
         # Model parameters
         self.dropout_keep_prob = 0.6
         self.hyperparams['fc_layers'] = [[128, 128, 64],
@@ -80,29 +84,34 @@ class DiscrimConfig(Config):
         self.hyperparams['dimred_feat'] = [32, 64, 128]
         self.hyperparams['dimred_kernel'] = [4, 6, 8]
         self.hyperparams['dimred_stride'] = [2, 4]
-
         # Resnet hyperparams
         self.hyperparams['num_rb'] = [2, 3, 4, 5]
         self.hyperparams['rb_feat'] = [8, 16, 32, 64]
         self.hyperparams['rb_kernel'] = [3, 4]
         self.hyperparams['batch_norm'] = [True, False]
+        # Generate all runs from hyperparameters
+        self.generate_runs()
 
 
 class RefinerConfig(Config):
-    # Log saving every n steps
-    save_logs = True
-    summary_every_n_steps = 50
-    # Save model checkpoint
-    save_model = False
-    save_every_n_train_steps = 50
 
-    # Optimizer parameters
-    initializer = slim.xavier_initializer()
-    hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
-    hyperparams['optimizer_type'] = ['adam']
-
-    # Resnet hyperparams
-    hyperparams['num_rb'] = [2, 3, 4, 5]
-    hyperparams['rb_feat'] = [8, 16, 32, 64]
-    hyperparams['rb_kernel'] = [3, 4]
-    hyperparams['batch_norm'] = [True, False]
+    def __init__(self):
+        # This config contains hyperparameters
+        self.build_hyperparameter_config()
+        # Log saving every n steps
+        self.save_logs = True
+        self.summary_every_n_steps = 50
+        # Save model checkpoint
+        self.save_model = False
+        self.save_every_n_train_steps = 50
+        # Optimizer parameters
+        self.initializer = slim.xavier_initializer()
+        self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
+        self.hyperparams['optimizer_type'] = ['adam']
+        # Resnet hyperparams
+        self.hyperparams['num_rb'] = [2, 3, 4, 5]
+        self.hyperparams['rb_feat'] = [8, 16, 32, 64]
+        self.hyperparams['rb_kernel'] = [3, 4]
+        self.hyperparams['batch_norm'] = [True, False]
+        # Generate all runs from hyperparameters
+        self.generate_runs()

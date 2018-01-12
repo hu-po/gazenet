@@ -10,7 +10,6 @@ The base config class is extended to create all other config classes
 
 
 class Config(object):
-
     # Root directory for entire repo
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     # Local directories contain logs, datasets, saved model
@@ -52,10 +51,6 @@ class Config(object):
         # List of all runs within experiment
         self.runs = []
 
-    def prepare_experiment(self):
-        self.generate_runs()
-        self.num_runs = len(self.runs)
-
     def prepare_run(self, idx):
         self.set_hyperparams(idx)
         self.create_run_directories()
@@ -70,7 +65,9 @@ class Config(object):
         permutations = [list(a) for a in permutations]
         # Shuffle prevents it from being a grid search
         random.shuffle(permutations)
-        return permutations
+        # Add run-related properties to config class
+        self.runs = permutations
+        self.num_runs = len(self.runs)
 
     def set_hyperparams(self, idx):
         permutation = self.runs[idx]

@@ -100,9 +100,7 @@ def image_feed(config=None):
     return iterator, iterator.get_next()
 
 
-@config_checker(['image_height',
-                 'image_width',
-                 'image_channels'])
+@config_checker(['image_height', 'image_width', 'image_channels'])
 def mixed_image_batch(self, config=None):
     # Placeholders for mixed batch
     real_images = tf.placeholder(tf.float32, shape=(None,

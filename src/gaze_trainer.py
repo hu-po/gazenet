@@ -148,8 +148,6 @@ def run_training(config=None):
 def main():
     # Create config and convert dataset to usable form
     config = GazeConfig()
-    base_utils.gazedata_to_tfrecords(config=config)
-    config.prepare_experiment()
     # Run training for every 'run' (different permutations of hyperparameters)
     for i in range(config.num_runs):
         config.prepare_run(i)

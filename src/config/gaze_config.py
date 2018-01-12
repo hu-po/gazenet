@@ -1,5 +1,6 @@
 import os
 from src.config.config import Config
+import src.utils.base_utils as base_utils
 
 '''
 GazeConfig class contains parameters used to train the gaze models.
@@ -67,3 +68,9 @@ class GazeConfig(Config):
         self.dataset_path = os.path.join(self.data_dir, self.dataset_name)
         self.train_tfrecord_path = os.path.join(self.dataset_path, 'train.tfrecords')
         self.test_tfrecord_path = os.path.join(self.dataset_path, 'test.tfrecords')
+
+        # Convert image data in folder to tfrecords
+        base_utils.gazedata_to_tfrecords(config=self)
+
+        # Generate all runs from hyperparameters
+        self.generate_runs()
