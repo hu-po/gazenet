@@ -1,16 +1,21 @@
 import os
-from src.config.base_config import BaseConfig
+from src.config.config import Config
 
 '''
 GazeConfig class contains parameters used to train the gaze models.
 '''
 
 
-class GazeConfig(BaseConfig):
+class GazeConfig(Config):
 
     def __init__(self):
         # Experiment name is the root directory for logs
-        super().__init__(experiment_name='res_batch_gaze')
+        self.experiment_name = 'res_batch_gaze'
+        self.build_experiment_config()
+
+        # This config contains hyperparameters
+        self.build_hyperparameter_config()
+
         # Gazenet uses a single dataset
         self.dataset_name = '100118_fixedhead'
         # Train targets are taken from image filenames

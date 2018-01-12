@@ -6,7 +6,7 @@ import cv2
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-from src.config.base_config import BaseConfig
+from src.config.config import BaseConfig
 
 '''
 This python file collects unlabeled real gaze images using the webcamera.

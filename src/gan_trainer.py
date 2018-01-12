@@ -29,8 +29,8 @@ This file is used to train the GAN, which is composed of a refiner net and a
                              'save_every_n_train_steps'])
 def run_training(config=None):
     # Synthetic and real image iterators
-    synth_iterator, synth_batch = train_utils.input_feed(config=config)
-    real_iterator, real_batch = train_utils.input_feed(config=config)
+    synth_iterator, synth_batch = train_utils.image_feed(config=config.real_dataset)
+    real_iterator, real_batch = train_utils.image_feed(config=config.fake_dataset)
 
     # Get images and labels from iterator, create model from class
     refiner_model = RefinerModel(config=config)

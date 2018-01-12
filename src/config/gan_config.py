@@ -1,50 +1,108 @@
-import os
+from collections import OrderedDict
 import tensorflow.contrib.slim as slim
-from src.config.base_config import BaseConfig
-from src.config.discrim_config import DiscrimConfig
-from src.config.refiner_config import RefinerConfig
+from src.config.config import Config
 
 '''
-GANConfig class contains parameters used to train the gan
+This file contains all the parameters for training the GAN component of this project. Each
+inherits from whatever config parent class is most relevant
+
+GANConfig - Experiment
+
 '''
 
 
-class GANConfig(BaseConfig):
+class GANConfig(Config):
 
     def __init__(self):
-        super().__init__(experiment_name='gan_training')
-        # GAN needs two input datasets and will create an output dataset
-        self.synth_dataset_name = '04012018_headlook'
-        self.real_dataset_name = '080118_real'
-        # Clip the dataset sizes
-        self.num_synth_images = 1000
-        self.num_real_images = 100
+        self.experiment_name = 'dualgan'
+        self.build_experiment_config()
+
+        # Seperate dataset configs
+        self.real_dataset = RealConfig()
+        self.fake_dataset = FakeConfig()
+
+        # Configs for both of the models
+        self.refiner_model = RefinerConfig()
+        self.discrim_model = DiscrimConfig()
 
         # Training parameters (from Algorithm 1 in [1])
         self.num_training_steps = 100  # T
         self.num_refiner_steps = 200  # Kg
         self.num_discrim_steps = 50  # Kd
-        self.synth_batch_size = 8
-        self.real_batch_size = 8
-        # Bigger buffer means better shuffling but slower start up and more memory used.
-        self.synth_buffer_size = 16
-        self.real_buffer_size = 16
+
+
+class FakeConfig(Config):
+
+    def __init__(self):
+        self.dataset_name = '04012018_headlook'
+        self.num_images = 1000
+        self.tfrecord_name = 'image.tfrecords'
+        # Bigger buffer means better shuffling, but more memory used
+        self.buffer_size = 16
+        self.batch_size = 8
+        # Build the rest of the dataset related parameters
+        self.build_dataset_config()
+
+
+class RealConfig(Config):
+
+    def __init__(self):
+        self.data_dir = '080118_real'
+        self.num_images = 100
+        self.tfrecord_name = 'image.tfrecords'
+        self.buffer_size = 16
+        self.batch_size = 8
+        self.build_dataset_config()
+
+
+class DiscrimConfig(Config):
+
+    def __init__(self):
         # Log saving every n steps
-        self.refiner_summary_every_n_steps = 50
-        self.discrim_summary_every_n_steps = 10
+        self.save_logs = True
+        self.summary_every_n_steps = 50
         # Save model checkpoint
         self.save_model = False
         self.save_every_n_train_steps = 50
 
-        # Dataset and tfrecord paths
-        self.synth_dataset_path = os.path.join(self.data_dir, self.synth_dataset_name)
-        self.real_dataset_path = os.path.join(self.data_dir, self.real_dataset_name)
-        self.synth_tfrecord_path = os.path.join(self.synth_dataset_path, 'image.tfrecords')
-        self.real_tfrecord_path = os.path.join(self.real_dataset_path, 'image.tfrecords')
+        # Optimizer parameters
+        self.initializer = slim.xavier_initializer()
+        self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
+        self.hyperparams['optimizer_type'] = ['adam']
 
-        # Set up seperate refiner and discriminator log directories
-        self.refiner_log_path = os.path.join(self.log_path, 'refiner')
-        self.discrim_log_path = os.path.join(self.log_path, 'discrim')
-        self.make_path(self.refiner_log_path)
-        self.make_path(self.discrim_log_path)
+        # Model parameters
+        self.dropout_keep_prob = 0.6
+        self.hyperparams['fc_layers'] = [[128, 128, 64],
+                                         [256, 32],
+                                         [64, 64],
+                                         [256, 64],
+                                         [128, 32]]
+        self.hyperparams['dimred_feat'] = [32, 64, 128]
+        self.hyperparams['dimred_kernel'] = [4, 6, 8]
+        self.hyperparams['dimred_stride'] = [2, 4]
 
+        # Resnet hyperparams
+        self.hyperparams['num_rb'] = [2, 3, 4, 5]
+        self.hyperparams['rb_feat'] = [8, 16, 32, 64]
+        self.hyperparams['rb_kernel'] = [3, 4]
+        self.hyperparams['batch_norm'] = [True, False]
+
+
+class RefinerConfig(Config):
+    # Log saving every n steps
+    save_logs = True
+    summary_every_n_steps = 50
+    # Save model checkpoint
+    save_model = False
+    save_every_n_train_steps = 50
+
+    # Optimizer parameters
+    initializer = slim.xavier_initializer()
+    hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
+    hyperparams['optimizer_type'] = ['adam']
+
+    # Resnet hyperparams
+    hyperparams['num_rb'] = [2, 3, 4, 5]
+    hyperparams['rb_feat'] = [8, 16, 32, 64]
+    hyperparams['rb_kernel'] = [3, 4]
+    hyperparams['batch_norm'] = [True, False]
