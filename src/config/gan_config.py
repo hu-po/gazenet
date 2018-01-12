@@ -23,8 +23,8 @@ class GANConfig(Config):
         self.fake_dataset = FakeConfig()
 
         # Configs for both of the models
-        self.refiner_model = RefinerConfig()
-        self.discrim_model = DiscrimConfig()
+        self.refiner_model = RefinerConfig(exp_config_handle=self)
+        self.discrim_model = DiscrimConfig(exp_config_handle=self)
 
         # Training parameters (from Algorithm 1 in [1])
         self.num_training_steps = 100  # T
@@ -46,10 +46,11 @@ class FakeConfig(Config):
         # Create tf record dataset from data dir
         base_utils.image_to_tfrecords(config=self)
 
+
 class RealConfig(Config):
 
     def __init__(self):
-        self.data_dir = '080118_real'
+        self.dataset_name = '080118_real'
         self.num_images = 100
         self.tfrecord_name = 'image.tfrecords'
         self.buffer_size = 16
@@ -61,9 +62,10 @@ class RealConfig(Config):
 
 class DiscrimConfig(Config):
 
-    def __init__(self):
+    def __init__(self, exp_config_handle=None):
+        self.name = 'discrim'
         # This config contains hyperparameters
-        self.build_hyperparameter_config()
+        self.build_hyperparameter_config(exp_config_handle=exp_config_handle)
         # Log saving every n steps
         self.save_logs = True
         self.summary_every_n_steps = 50
@@ -95,15 +97,18 @@ class DiscrimConfig(Config):
 
 class RefinerConfig(Config):
 
-    def __init__(self):
+    def __init__(self, exp_config_handle=None):
+        self.name = 'refiner'
         # This config contains hyperparameters
-        self.build_hyperparameter_config()
+        self.build_hyperparameter_config(exp_config_handle=exp_config_handle)
         # Log saving every n steps
         self.save_logs = True
         self.summary_every_n_steps = 50
         # Save model checkpoint
         self.save_model = False
         self.save_every_n_train_steps = 50
+        # Loss parameters
+        self.regularization_lambda = 1
         # Optimizer parameters
         self.initializer = slim.xavier_initializer()
         self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]

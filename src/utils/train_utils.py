@@ -101,7 +101,7 @@ def image_feed(config=None):
 
 
 @config_checker(['image_height', 'image_width', 'image_channels'])
-def mixed_image_batch(self, config=None):
+def mixed_image_batch(config=None):
     # Placeholders for mixed batch
     real_images = tf.placeholder(tf.float32, shape=(None,
                                                     config.image_height,
@@ -116,8 +116,8 @@ def mixed_image_batch(self, config=None):
     # Combine together refined synthetic and real images in batch
     combined_images = tf.concat([real_images, refined_images], axis=0)
     # Create label vectors of same length as image batches (0=fake, 1=real)
-    real_labels = tf.one_hot(tf.ones(shape=[tf.shape(self.real_image)[0]], dtype=tf.uint8), 2)
-    fake_labels = tf.one_hot(tf.zeros(shape=[tf.shape(self.refined_image)[0]], dtype=tf.uint8), 2)
+    real_labels = tf.one_hot(tf.ones(shape=[tf.shape(real_images)[0]], dtype=tf.uint8), 2)
+    fake_labels = tf.one_hot(tf.zeros(shape=[tf.shape(refined_images)[0]], dtype=tf.uint8), 2)
     combined_labels = tf.concat([real_labels, fake_labels], axis=0)
     # Make sure to shuffle the images and labels with the same seed
     seed = 1

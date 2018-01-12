@@ -41,15 +41,19 @@ class Config(object):
         self._make_path(self.checkpoint_path)
         print('Created log and checkpoint directories for experiment %s' % experiment_name)
 
-    def build_hyperparameter_config(self):
+    def build_hyperparameter_config(self, exp_config_handle=None):
         # Dictionary of all hyperparameter values
         self.hyperparams = OrderedDict()
         # Runs are required when configs contain hyperparameters
-        self.run_specific_name = ''
+        self.run_specific_name = self.name
         self.run_log_path = None
         self.run_checkpoint_path = None
         # List of all runs within experiment
         self.runs = []
+        if exp_config_handle is not None:
+            # Take log and checkpoint paths from experiment
+            self.log_path = exp_config_handle.log_path
+            self.checkpoint_path = exp_config_handle.checkpoint_path
 
     def prepare_run(self, idx):
         self.set_hyperparams(idx)
@@ -78,16 +82,16 @@ class Config(object):
             setattr(self, key, value)
 
     def create_run_directories(self):
-        self.run_specific_name = ''
+        self.run_specific_name = self.name
         for key, value in self.run_hyperparams.items():
             str_value = str(value)
             if isinstance(value, list):
                 str_value = '_'.join(str(a) for a in value)
             self.run_specific_name += '_%s_%s' % (key, str_value)
         self.run_log_path = os.path.join(self.log_path, self.run_specific_name)
-        self._make_path(self.log_path)
+        self._make_path(self.run_log_path)
         self.run_checkpoint_path = os.path.join(self.checkpoint_path, self.run_specific_name)
-        self._make_path(self.checkpoint_path)
+        self._make_path(self.run_checkpoint_path)
 
     @staticmethod
     def _make_path(path):

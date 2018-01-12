@@ -16,6 +16,7 @@ def config_checker(config_properties=None):
     :param config_properties: [string] list of strings of properties used in function
     :return: function
     """
+
     def decorator(func):
         def wrapped(*args, **kwargs):
             assert kwargs.get('config', None) is not None, '%s needs config argument' % func.__name__
@@ -23,7 +24,9 @@ def config_checker(config_properties=None):
                 assert kwargs['config'].__getattribute__(prop) is not None, \
                     '%s needs the (not None) property %s' % (func.__name__, prop)
             return func(*args, **kwargs)
+
         return wrapped
+
     return decorator
 
 
@@ -97,6 +100,7 @@ def gazedata_to_tfrecords(config=None):
     _write_gazedata_tfrecord(config.train_tfrecord_path, train_image_paths, config=config)
     _write_gazedata_tfrecord(config.test_tfrecord_path, test_image_paths, config=config)
 
+
 @config_checker()
 def _write_image_tfrecord(tfrecord_path, image_paths, config=None):
     writer = tf.python_io.TFRecordWriter(tfrecord_path)
@@ -110,15 +114,16 @@ def _write_image_tfrecord(tfrecord_path, image_paths, config=None):
         writer.write(example.SerializeToString())
     writer.close()
 
-@config_checker(['synth_tfrecord_path', 'real_tfrecord_path', 'synth_dataset_path', 'real_dataset_path'])
+
+@config_checker(['tfrecord_path',
+                 'dataset_path',
+                 'dataset_name'])
 def image_to_tfrecords(config=None):
-    if os.path.exists(config.synth_tfrecord_path) and os.path.exists(config.real_tfrecord_path):
-        print('TFRecords have already been created for these datasets')
+    if os.path.exists(config.tfrecord_path):
+        print('TFRecords has already been created for this dataset')
         return
-    synth_image_paths = glob.glob(os.path.join(config.synth_dataset_path, '*.png'))
-    real_image_paths = glob.glob(os.path.join(config.real_dataset_path, '*.png'))
-    print('There are %d real images and %d synthetic images' % (len(real_image_paths),
-                                                                len(synth_image_paths)))
+    image_paths = glob.glob(os.path.join(config.dataset_path, '*.png'))
+    print('There are %d images in %s' % (len(image_paths), config.dataset_name))
+
     # Write synthetic and real tfrecords to paths in config
-    _write_image_tfrecord(config.synth_tfrecord_path, synth_image_paths, config=config)
-    _write_image_tfrecord(config.real_tfrecord_path, real_image_paths, config=config)
+    _write_image_tfrecord(config.tfrecord_path, image_paths, config=config)
