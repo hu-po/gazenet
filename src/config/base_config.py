@@ -11,7 +11,7 @@ The base config class is extended to create all other config classes
 
 class BaseConfig(object):
 
-    def __init__(self, experiment_name='mystery'):
+    def __init__(self, experiment_name=None):
         # Root directory for entire repo
         self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         # Local directories contain logs, datasets, saved model
@@ -20,13 +20,14 @@ class BaseConfig(object):
         self.model_dir = os.path.join(self.root_dir, 'local', 'models')
 
         # Create experiment specific log and checkpoint directories
-        d = datetime.datetime.today()
-        experiment_name = '%s_%sm_%sd_%shr_%smin' % (experiment_name, d.month, d.day, d.hour, d.minute)
-        self.log_path = os.path.join(self.log_dir, experiment_name)
-        self.make_path(self.log_path)
-        self.checkpoint_path = os.path.join(self.model_dir, experiment_name)
-        self.make_path(self.checkpoint_path)
-        print('Created log and checkpoint directories for experiment %s' % experiment_name)
+        if experiment_name is not None:
+            d = datetime.datetime.today()
+            experiment_name = '%s_%sm_%sd_%shr_%smin' % (experiment_name, d.month, d.day, d.hour, d.minute)
+            self.log_path = os.path.join(self.log_dir, experiment_name)
+            self.make_path(self.log_path)
+            self.checkpoint_path = os.path.join(self.model_dir, experiment_name)
+            self.make_path(self.checkpoint_path)
+            print('Created log and checkpoint directories for experiment %s' % experiment_name)
 
         # Each run within an experiment will have a run-specific name
         self.run_specific_name = ''

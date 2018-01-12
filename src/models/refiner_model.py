@@ -17,20 +17,15 @@ The refiner network 'refines' a synthetic image, making it more real.
 
 class RefinerModel(BaseModel):
 
-    @base_utils.config_checker(['refiner_learning_rate',
-                                'refiner_optimizer_type'])
+    @base_utils.config_checker()
     def __init__(self, config=None):
         super().__init__(config=config)
         self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
-        # Reassign optimizer parameters
-        config.learning_rate = config.refiner_learning_rate
-        config.optimizer_type = config.refiner_optimizer_type
         self.build_graph(config=config)
 
-    @base_utils.config_checker(['refiner_initializer',
-                                'image_channels'])
+    @base_utils.config_checker(['image_channels'])
     def model_func(self, config=None):
-        with tf.variable_scope('refiner_model', initializer=config.refiner_initializer, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope('refiner_model', initializer=config.initializer, reuse=tf.AUTO_REUSE):
             x = self.image
             self.add_summary('input_image', x, 'image')
             x = layers.resnet(x, self, config=config)

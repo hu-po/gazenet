@@ -17,19 +17,15 @@ The discriminator network differentiates between synthetic and real images.
 
 class DiscriminatorModel(BaseModel):
 
-    @base_utils.config_checker(['discrim_learning_rate',
-                                'discrim_optimizer_type'])
+    @base_utils.config_checker()
     def __init__(self, config=None):
         super().__init__(config=config)
         self.label = tf.placeholder(tf.uint8, shape=(None, 2), name='label')
-        # Reassign optimizer parameters
-        config.learning_rate = config.discrim_learning_rate
-        config.optimizer_type = config.discrim_optimizer_type
         self.build_graph(config=config)
 
-    @base_utils.config_checker(['discrim_initializer'])
+    @base_utils.config_checker(['initializer'])
     def model_func(self, config=None):
-        with tf.variable_scope('discrim_model', initializer=config.discrim_initializer, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope('discrim_model', initializer=config.initializer, reuse=tf.AUTO_REUSE):
             x = self.image
             self.add_summary('input_image', x, 'image')
             # Model arch is a stack of conv blocks with residual connections, then a fully connected head

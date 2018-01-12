@@ -18,39 +18,7 @@ This file is used to train the GAN, which is composed of a refiner net and a
 '''
 
 
-@train_utils.config_checker(['num_synth_images', 'synth_tfrecord_path',
-                             'synth_buffer_size', 'synth_batch_size'])
-def _synth_feed(config=None):
-    with tf.name_scope('synth_input'):
-        dataset = tf.data.TFRecordDataset(config.synth_tfrecord_path)
-        dataset = dataset.take(config.num_synth_images)
-        dataset = dataset.map(lambda x: train_utils.decode_image(x, config=config))
-        dataset = dataset.map(lambda i: train_utils.grayscale(i, config=config))
-        dataset = dataset.map(lambda i: train_utils.standardize(i, config=config))
-        dataset = dataset.repeat()  # Repeat dataset indefinitely
-        dataset = dataset.shuffle(config.synth_buffer_size)
-        dataset = dataset.batch(config.synth_batch_size)
-        iterator = dataset.make_initializable_iterator()
-    return iterator, iterator.get_next()
-
-
-@train_utils.config_checker(['num_real_images', 'real_tfrecord_path',
-                             'real_buffer_size', 'real_batch_size'])
-def _real_feed(config=None):
-    with tf.name_scope('real_input'):
-        dataset = tf.data.TFRecordDataset(config.real_tfrecord_path)
-        dataset = dataset.take(config.num_real_images)
-        dataset = dataset.map(lambda x: train_utils.decode_image(x, config=config))
-        dataset = dataset.map(lambda i: train_utils.grayscale(i, config=config))
-        dataset = dataset.map(lambda i: train_utils.standardize(i, config=config))
-        dataset = dataset.repeat()  # Repeat dataset indefinitely
-        dataset = dataset.shuffle(config.real_buffer_size)
-        dataset = dataset.batch(config.real_batch_size)
-        iterator = dataset.make_initializable_iterator()
-    return iterator, iterator.get_next()
-
-
-@train_utils.config_checker(['log_path',
+@train_utils.config_checker(['run_log_path',
                              'checkpoint_path',
                              'num_training_steps',
                              'num_refiner_steps',
@@ -61,8 +29,8 @@ def _real_feed(config=None):
                              'save_every_n_train_steps'])
 def run_training(config=None):
     # Synthetic and real image iterators
-    synth_iterator, synth_batch = _synth_feed(config=config)
-    real_iterator, real_batch = _real_feed(config=config)
+    synth_iterator, synth_batch = train_utils.input_feed(config=config)
+    real_iterator, real_batch = train_utils.input_feed(config=config)
 
     # Get images and labels from iterator, create model from class
     refiner_model = RefinerModel(config=config)
@@ -83,8 +51,8 @@ def run_training(config=None):
         # Initialize variables
         sess.run(init_op)
         # Logs and model checkpoint paths defined in config
-        refiner_writer = tf.summary.FileWriter(config.refiner_log_path, sess.graph)
-        discrim_writer = tf.summary.FileWriter(config.discrim_log_path, sess.graph)
+        refiner_writer = tf.summary.FileWriter(os.path.join(config.run_log_path, 'refiner'), sess.graph)
+        discrim_writer = tf.summary.FileWriter(os.path.join(config.run_log_path, 'discrim'), sess.graph)
         saver = tf.train.Saver()
         # Initalize both datasets (they repeat forever, so only need this once)
         sess.run(real_iterator.initializer)
@@ -138,9 +106,21 @@ def run_training(config=None):
 
 
 def main():
+    # Create config and convert dataset to usable form
     config = GANConfig()
     base_utils.image_to_tfrecords(config=config)
-    run_training(config=config)
+    config.prepare_experiment()
+    # Run training for every 'run' (different permutations of hyperparameters)
+    for i in range(config.num_runs):
+        config.prepare_run(i)
+        run_training(config=config)
+
+        # try:
+        #     config.prepare_run(i)
+        #     run_training(config=config)
+        # except Exception as e:  # If something wierd happens because of the particular hyperparameters
+        #     # Clear the graph just in case there is lingering stuff
+        #     tf.reset_default_graph()
 
 
 if __name__ == '__main__':

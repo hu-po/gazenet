@@ -82,6 +82,24 @@ def standardize(image, label=None, config=None):
     return image, label
 
 
+@config_checker(['num_images',
+                 'tfrecord_path',
+                 'buffer_size',
+                 'batch_size'])
+def image_feed(config=None):
+    with tf.name_scope('input_feed_gen'):
+        dataset = tf.data.TFRecordDataset(config.tfrecord_path)
+        dataset = dataset.take(config.num_images)
+        dataset = dataset.map(lambda x: decode_image(x, config=config))
+        dataset = dataset.map(lambda i: grayscale(i, config=config))
+        dataset = dataset.map(lambda i: standardize(i, config=config))
+        dataset = dataset.repeat()  # Repeat dataset indefinitely
+        dataset = dataset.shuffle(config.buffer_size)
+        dataset = dataset.batch(config.batch_size)
+        iterator = dataset.make_initializable_iterator()
+    return iterator, iterator.get_next()
+
+
 @config_checker(['image_height',
                  'image_width',
                  'image_channels'])
