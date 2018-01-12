@@ -31,8 +31,8 @@ def refiner_solo_train(config=None):
                              'num_discrim_steps'])
 def adversarial_training(config=None):
     # Synthetic and real image iterators
-    synth_iterator, synth_batch = train_utils.image_feed(config=config.real_dataset)
-    real_iterator, real_batch = train_utils.image_feed(config=config.fake_dataset)
+    synth_iterator, synth_batch_op = train_utils.image_feed(config=config.real_dataset)
+    real_iterator, real_batch_op = train_utils.image_feed(config=config.fake_dataset)
 
     # Build models
     refiner_model = RefinerModel(config=config.refiner_model)
@@ -62,7 +62,7 @@ def adversarial_training(config=None):
             refiner_step_start = time.time()
             for refiner_step in range(config.num_refiner_steps):
                 # Get a batch of synthetic images
-                synth_image = sess.run(synth_batch)
+                synth_image = sess.run(synth_batch_op)
                 # Feed the synthetic images through the refiner, producing refined images
                 refined_image = sess.run(refiner_model.predict, feed_dict={refiner_model.image: synth_image,
                                                                            refiner_model.is_training: False})
@@ -82,21 +82,20 @@ def adversarial_training(config=None):
             refiner_step_duration = time.time() - refiner_step_start
             discrim_step_start = time.time()
             for discrim_step in range(config.num_discrim_steps):
-                synth_batch = sess.run(synth_batch)
-                real_batch = sess.run(real_batch)
+                synth_batch = sess.run(synth_batch_op)
+                real_batch = sess.run(real_batch_op)
                 # Feed synthetic images through refiner network
                 refined_batch = sess.run(refiner_model.predict, feed_dict={refiner_model.image: synth_batch,
                                                                            refiner_model.is_training: False})
                 # Get a batch of mixed refined and real images
                 mixed_image, mixed_label = sess.run(mixed_batch_op, feed_dict={real_images: real_batch,
                                                                                refined_images: refined_batch})
-
                 # Train discriminator network using mixed images
                 _, discrim_summary = sess.run([discrim_model.optimize,
                                                discrim_summary_op],
                                               feed_dict={discrim_model.label: mixed_label,
                                                          discrim_model.image: mixed_image,
-                                                         discrim_model.is_training: False})
+                                                         discrim_model.is_training: True})
                 if discrim_step % config.discrim_model.summary_every_n_steps == 0:
                     num_steps_elapsed = train_step * config.num_discrim_steps + discrim_step
                     discrim_writer.add_summary(discrim_summary, num_steps_elapsed)

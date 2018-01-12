@@ -23,9 +23,10 @@ class DiscriminatorModel(BaseModel):
         self.label = tf.placeholder(tf.uint8, shape=(None, 2), name='label')
         self.build_graph(config=config)
 
-    @base_utils.config_checker(['initializer'])
+    @base_utils.config_checker(['initializer',
+                                'model_name'])
     def model_func(self, config=None):
-        with tf.variable_scope('discrim_model', initializer=config.initializer, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(config.model_name, initializer=config.initializer, reuse=tf.AUTO_REUSE):
             x = self.image
             self.add_summary('input_image', x, 'image')
             # Model arch is a stack of conv blocks with residual connections, then a fully connected head

@@ -27,9 +27,9 @@ class GANConfig(Config):
         self.discrim_model = DiscrimConfig(exp_config_handle=self)
 
         # Training parameters (from Algorithm 1 in [1])
-        self.num_training_steps = 100  # T
-        self.num_refiner_steps = 200  # Kg
-        self.num_discrim_steps = 50  # Kd
+        self.num_training_steps = 5 #100  # T
+        self.num_refiner_steps = 5 #200  # Kg
+        self.num_discrim_steps = 5 #50  # Kd
 
 
 class FakeConfig(Config):
@@ -63,12 +63,12 @@ class RealConfig(Config):
 class DiscrimConfig(Config):
 
     def __init__(self, exp_config_handle=None):
-        self.name = 'discrim'
+        self.model_name = 'discrim'
         # This config contains hyperparameters
         self.build_hyperparameter_config(exp_config_handle=exp_config_handle)
         # Log saving every n steps
         self.save_logs = True
-        self.summary_every_n_steps = 50
+        self.summary_every_n_steps = 5
         # Save model checkpoint
         self.save_model = False
         self.save_every_n_train_steps = 50
@@ -98,12 +98,12 @@ class DiscrimConfig(Config):
 class RefinerConfig(Config):
 
     def __init__(self, exp_config_handle=None):
-        self.name = 'refiner'
+        self.model_name = 'refiner'
         # This config contains hyperparameters
         self.build_hyperparameter_config(exp_config_handle=exp_config_handle)
         # Log saving every n steps
         self.save_logs = True
-        self.summary_every_n_steps = 50
+        self.summary_every_n_steps = 5
         # Save model checkpoint
         self.save_model = False
         self.save_every_n_train_steps = 50

@@ -45,7 +45,6 @@ class Config(object):
         # Dictionary of all hyperparameter values
         self.hyperparams = OrderedDict()
         # Runs are required when configs contain hyperparameters
-        self.run_specific_name = self.name
         self.run_log_path = None
         self.run_checkpoint_path = None
         # List of all runs within experiment
@@ -82,15 +81,15 @@ class Config(object):
             setattr(self, key, value)
 
     def create_run_directories(self):
-        self.run_specific_name = self.name
+        run_specific_name = self.model_name
         for key, value in self.run_hyperparams.items():
             str_value = str(value)
             if isinstance(value, list):
                 str_value = '_'.join(str(a) for a in value)
-            self.run_specific_name += '_%s_%s' % (key, str_value)
-        self.run_log_path = os.path.join(self.log_path, self.run_specific_name)
+            run_specific_name += '_%s_%s' % (key, str_value)
+        self.run_log_path = os.path.join(self.log_path, run_specific_name)
         self._make_path(self.run_log_path)
-        self.run_checkpoint_path = os.path.join(self.checkpoint_path, self.run_specific_name)
+        self.run_checkpoint_path = os.path.join(self.checkpoint_path, run_specific_name)
         self._make_path(self.run_checkpoint_path)
 
     @staticmethod

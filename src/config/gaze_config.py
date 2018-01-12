@@ -49,6 +49,7 @@ class GazeConfig(Config):
         self.hyperparams['optimizer_type'] = ['adam']
 
         # Model parameters
+        self.model_name = 'gaze'
         self.dropout_keep_prob = 0.6
         self.hyperparams['fc_layers'] = [[128, 128, 64],
                                          [256, 32],

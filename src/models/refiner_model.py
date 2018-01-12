@@ -23,9 +23,10 @@ class RefinerModel(BaseModel):
         self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
         self.build_graph(config=config)
 
-    @base_utils.config_checker(['image_channels'])
+    @base_utils.config_checker(['image_channels',
+                                'model_name'])
     def model_func(self, config=None):
-        with tf.variable_scope('refiner_model', initializer=config.initializer, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(config.model_name, initializer=config.initializer, reuse=tf.AUTO_REUSE):
             x = self.image
             self.add_summary('input_image', x, 'image')
             x = layers.resnet(x, self, config=config)

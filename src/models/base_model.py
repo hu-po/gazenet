@@ -50,7 +50,7 @@ class BaseModel(object):
             raise Exception('Non valid summary type given')
         self.summaries.append(s)
 
-    @base_utils.config_checker(['learning_rate', 'optimizer_type'])
+    @base_utils.config_checker(['learning_rate', 'optimizer_type', 'model_name'])
     def optimize_func(self, config=None):
         with tf.variable_scope('optimizer', reuse=tf.AUTO_REUSE):
             if config.optimizer_type == 'rmsprop':
@@ -62,7 +62,7 @@ class BaseModel(object):
             else:
                 raise Exception('Unkown optimizer type: %s' % config.optimizer_type)
             # Add mean and variance ops to dependencies so batch norm works during training
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope=config.model_name)
             with tf.control_dependencies(update_ops):
                 train_op = optimizer.minimize(self.loss)
         return train_op
