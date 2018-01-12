@@ -70,6 +70,7 @@ def grayscale(image, label=None, config=None):
     return image, label
 
 
+@config_checker()
 def standardize(image, label=None, config=None):
     with tf.name_scope('image_prep'):
         # Standardize the images
@@ -79,3 +80,31 @@ def standardize(image, label=None, config=None):
         # Standardize the labels
         label = tf.cast(label, tf.float32) * (1. / 100) - 0.5
     return image, label
+
+
+@config_checker(['image_height',
+                 'image_width',
+                 'image_channels'])
+def mixed_image_batch(self, config=None):
+    # Placeholders for mixed batch
+    real_images = tf.placeholder(tf.float32, shape=(None,
+                                                    config.image_height,
+                                                    config.image_width,
+                                                    config.image_channels),
+                                 name='real_images')
+    refined_images = tf.placeholder(tf.float32, shape=(None,
+                                                       config.image_height,
+                                                       config.image_width,
+                                                       config.image_channels),
+                                    name='refined_images')
+    # Combine together refined synthetic and real images in batch
+    combined_images = tf.concat([real_images, refined_images], axis=0)
+    # Create label vectors of same length as image batches (0=fake, 1=real)
+    real_labels = tf.one_hot(tf.ones(shape=[tf.shape(self.real_image)[0]], dtype=tf.uint8), 2)
+    fake_labels = tf.one_hot(tf.zeros(shape=[tf.shape(self.refined_image)[0]], dtype=tf.uint8), 2)
+    combined_labels = tf.concat([real_labels, fake_labels], axis=0)
+    # Make sure to shuffle the images and labels with the same seed
+    seed = 1
+    shuffled_images = tf.random_shuffle(combined_images, seed=seed)
+    shuffled_labels = tf.random_shuffle(combined_labels, seed=seed)
+    return real_images, refined_images, [shuffled_images, shuffled_labels]

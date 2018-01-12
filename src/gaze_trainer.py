@@ -79,8 +79,8 @@ def run_training(config=None):
     best_loss = 0
     steps_since_loss_decrease = -1
 
-    # with tf.Session() as sess:
-    with tf_debug.LocalCLIDebugWrapperSession(tf.Session()) as sess:
+    with tf.Session() as sess:
+    # with tf_debug.LocalCLIDebugWrapperSession(tf.Session()) as sess:
         # Initialize variables
         sess.run(init_op)
         # Model saver and log writers
@@ -131,6 +131,7 @@ def run_training(config=None):
                 steps_since_loss_decrease += 1
             if loss < best_loss:
                 best_loss = loss
+                steps_since_loss_decrease = 0
             if steps_since_loss_decrease >= config.patience:
                 print('Loss no longer decreasing, ending run')
                 break

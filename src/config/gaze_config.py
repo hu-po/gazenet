@@ -40,7 +40,7 @@ class GazeConfig(BaseConfig):
         self.save_every_n_epochs = 50
         # Optimizer parameters
         self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
-        self.hyperparams['optimizer_type'] = ['sgd', 'adam']
+        self.hyperparams['optimizer_type'] = ['adam']
 
         # Model parameters
         self.dropout_keep_prob = 0.6

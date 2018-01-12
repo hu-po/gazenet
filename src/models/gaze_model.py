@@ -21,8 +21,7 @@ class GazeModel(BaseModel):
     @base_utils.config_checker()
     def __init__(self, config=None):
         super().__init__(config=config)
-        with tf.variable_scope('input'):
-            self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
+        self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
         self.build_graph(config=config)
 
     @base_utils.config_checker()
@@ -40,7 +39,6 @@ class GazeModel(BaseModel):
 
     def loss_func(self, config=None):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
-            self.debug = tf.Print(self.label, [self.label, self.predict])
             mse = tf.losses.mean_squared_error(labels=self.label, predictions=self.predict, scope='mse')
             self.add_summary('mse', mse, 'scalar')
         return mse

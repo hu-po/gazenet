@@ -68,6 +68,9 @@ def run_training(config=None):
     refiner_model = RefinerModel(config=config)
     discrim_model = DiscriminatorModel(config=config)
 
+    # Mixed batch to be fed to the discriminator during training
+    real_images, refined_images, mixed_batch_op = train_utils.mixed_image_batch(config=config)
+
     # The op for initializing the variables.
     init_op = tf.group(tf.global_variables_initializer(),
                        tf.local_variables_initializer())
@@ -109,15 +112,14 @@ def run_training(config=None):
             refiner_step_duration = time.time() - refiner_step_start
             discrim_step_start = time.time()
             for discrim_step in range(config.num_discrim_steps):
-                synth_image = sess.run(synth_batch)
+                synth_batch = sess.run(synth_batch)
                 # Feed synthetic images through refiner network
-                refined_image = sess.run(refiner_model.predict, feed_dict={refiner_model.image: synth_image})
-                real_image = sess.run(real_batch)
-                mixed_batch = sess.run(discrim_model.mixed_image_batch,
-                                       feed_dict={discrim_model.real_image: real_image,
-                                                  discrim_model.refined_image: refined_image})
-                mixed_image = mixed_batch[0]
-                mixed_label = mixed_batch[1]
+                refined_batch = sess.run(refiner_model.predict, feed_dict={refiner_model.image: synth_batch})
+                real_batch = sess.run(real_batch)
+                mixed_image, mixed_label = sess.run(mixed_batch_op,
+                                                    feed_dict={real_images: real_batch,
+                                                               refined_images: refined_batch})
+
                 # Train discriminator network using mixed images
                 _, discrim_summary = sess.run([discrim_model.optimize,
                                                discrim_summary_op],
