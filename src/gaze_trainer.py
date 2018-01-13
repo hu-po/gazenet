@@ -7,10 +7,10 @@ from tensorflow.python import debug as tf_debug
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
+from src.config.config import config_checker
 from src.models.gaze_model import GazeModel
 from src.config.gaze_config import GazeConfig
 import src.utils.train_utils as train_utils
-import src.utils.base_utils as base_utils
 
 '''
 This file is used to train the gaze net. It contains functions for reading
@@ -18,10 +18,10 @@ and decoding the data (should be in TFRecords format).
 '''
 
 
-@base_utils.config_checker(['num_train_examples',
-                            'train_tfrecord_path',
-                            'buffer_size',
-                            'batch_size'])
+@config_checker(['num_train_examples',
+                 'train_tfrecord_path',
+                 'buffer_size',
+                 'batch_size'])
 def _train_feed(config=None):
     with tf.name_scope('train_input'):
         dataset = tf.data.TFRecordDataset(config.train_tfrecord_path)
@@ -36,10 +36,10 @@ def _train_feed(config=None):
     return iterator, iterator.get_next()
 
 
-@base_utils.config_checker(['num_test_examples',
-                            'test_tfrecord_path',
-                            'buffer_size',
-                            'batch_size'])
+@config_checker(['num_test_examples',
+                 'test_tfrecord_path',
+                 'buffer_size',
+                 'batch_size'])
 def _test_feed(config=None):
     with tf.name_scope('test_input'):
         dataset = tf.data.TFRecordDataset(config.test_tfrecord_path)
@@ -52,11 +52,11 @@ def _test_feed(config=None):
     return iterator, iterator.get_next()
 
 
-@base_utils.config_checker(['run_log_path',
-                            'run_checkpoint_path',
-                            'num_epochs',
-                            'save_model',
-                            'save_every_n_epochs'])
+@config_checker(['run_log_path',
+                 'run_checkpoint_path',
+                 'num_epochs',
+                 'save_model',
+                 'save_every_n_epochs'])
 def run_training(config=None):
     """
         Train gaze_trainer for the given number of steps.

@@ -6,11 +6,11 @@ import tensorflow.contrib.slim as slim
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-import src.utils.base_utils as base_utils
+from src.config.config import config_checker
 
 
-@base_utils.config_checker(['fc_layers',
-                            'dropout_keep_prob'])
+@config_checker(['fc_layers',
+                 'dropout_keep_prob'])
 def fc_head(input, model, config=None):
     x = input
     for i in range(len(config.fc_layers)):
@@ -19,11 +19,11 @@ def fc_head(input, model, config=None):
     return x
 
 
-@base_utils.config_checker(['dropout_keep_prob',
-                            'batch_norm',
-                            'dimred_feat',
-                            'dimred_kernel',
-                            'dimred_stride'])
+@config_checker(['dropout_keep_prob',
+                 'batch_norm',
+                 'dimred_feat',
+                 'dimred_kernel',
+                 'dimred_stride'])
 def dim_reductor(input, model, config=None):
     x = slim.conv2d(input, config.dimred_feat, config.dimred_kernel, stride=config.dimred_stride)
     if config.batch_norm:
@@ -33,9 +33,9 @@ def dim_reductor(input, model, config=None):
     return x
 
 
-@base_utils.config_checker(['rb_feat',
-                            'rb_kernel',
-                            'batch_norm'])
+@config_checker(['rb_feat',
+                 'rb_kernel',
+                 'batch_norm'])
 def resnet_block(input, model, config=None):
     x = slim.conv2d(input, config.rb_feat, config.rb_kernel, padding='same')
     if config.batch_norm:
@@ -44,7 +44,7 @@ def resnet_block(input, model, config=None):
     return x
 
 
-@base_utils.config_checker(['num_rb'])
+@config_checker(['num_rb'])
 def resnet(input, model, config=None):
     x = input
     for _ in range(config.num_rb):

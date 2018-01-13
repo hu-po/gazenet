@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import tensorflow.contrib.slim as slim
 from src.config.config import Config
-import src.utils.base_utils as base_utils
+import src.utils.data_utils as base_utils
 
 '''
 This file contains all the parameters for training the GAN component of this project. Each

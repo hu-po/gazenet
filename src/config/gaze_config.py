@@ -1,6 +1,6 @@
 import os
 from src.config.config import Config
-import src.utils.base_utils as base_utils
+import src.utils.data_utils as base_utils
 
 '''
 GazeConfig class contains parameters used to train the gaze models.

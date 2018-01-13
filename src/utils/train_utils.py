@@ -1,9 +1,14 @@
+import os
+import sys
 import tensorflow as tf
-from src.utils.base_utils import config_checker
+
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(mod_path)
+
+from src.config.config import config_checker
 
 '''
-This file contains common functions used for training. Stored here to prevent
-clutter in the main training files or in the general util file.
+This file contains common functions used for training (input feeding, data decoding and augmentation, etc)
 '''
 
 

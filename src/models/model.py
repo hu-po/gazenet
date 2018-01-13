@@ -5,7 +5,7 @@ import tensorflow as tf
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-import src.utils.base_utils as base_utils
+from src.config.config import config_checker
 
 '''
 Base model class is inherited to re-use some common code
@@ -14,9 +14,9 @@ Base model class is inherited to re-use some common code
 
 class BaseModel(object):
 
-    @base_utils.config_checker(['image_width',
-                                'image_height',
-                                'image_channels'])
+    @config_checker(['image_width',
+                     'image_height',
+                     'image_channels'])
     def __init__(self, config=None):
         self.graph = tf.Graph()
         with self.graph.as_default():
@@ -31,17 +31,17 @@ class BaseModel(object):
             # List of summaries in this model class
             self.summaries = []
 
-    @base_utils.config_checker()
+    @config_checker()
     def build_graph(self, config=None):
         self.predict = self.model_func(config=config)
         self.loss = self.loss_func(config=config)
         self.optimize = self.optimize_func(config=config)
 
-    @base_utils.config_checker()
+    @config_checker()
     def model_func(self, config=None):
         raise NotImplementedError('Model must have a model function')
 
-    @base_utils.config_checker()
+    @config_checker()
     def loss_func(self, config=None):
         raise NotImplementedError('Model must have a loss function')
 
@@ -55,7 +55,7 @@ class BaseModel(object):
             raise Exception('Non valid summary type given')
         self.summaries.append(s)
 
-    @base_utils.config_checker(['learning_rate', 'optimizer_type', 'model_name'])
+    @config_checker(['learning_rate', 'optimizer_type', 'model_name'])
     def optimize_func(self, config=None):
         with tf.variable_scope('optimizer', reuse=tf.AUTO_REUSE):
             if config.optimizer_type == 'rmsprop':

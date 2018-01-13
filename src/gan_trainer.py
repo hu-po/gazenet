@@ -7,10 +7,10 @@ import tensorflow as tf
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
+from src.config.config import config_checker
 from src.models.discrim_model import DiscriminatorModel
 from src.models.refiner_model import RefinerModel
 from src.config.gan_config import GANConfig
-import src.utils.train_utils as train_utils
 
 '''
 This file is used to train the GAN, which is composed of a refiner net and a 
@@ -18,17 +18,17 @@ This file is used to train the GAN, which is composed of a refiner net and a
 '''
 
 
-@train_utils.config_checker(['real_dataset',
-                             'fake_dataset'])
+@config_checker(['real_dataset',
+                 'fake_dataset'])
 def refiner_solo_train(config=None):
     pass
 
 
-@train_utils.config_checker(['real_dataset',
-                             'fake_dataset',
-                             'num_training_steps',
-                             'num_refiner_steps',
-                             'num_discrim_steps'])
+@config_checker(['real_dataset',
+                 'fake_dataset',
+                 'num_training_steps',
+                 'num_refiner_steps',
+                 'num_discrim_steps'])
 def adversarial_training(config=None):
     # Synthetic and real image iterators
     synth_iterator, synth_batch_op = train_utils.image_feed(config=config.real_dataset)

@@ -6,9 +6,9 @@ import tensorflow.contrib.slim as slim
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-import src.utils.base_utils as base_utils
-from src.models.base_model import BaseModel
-import src.models.custom_layers as layers
+from src.config.config import config_checker
+from src.models.model import BaseModel
+import src.models.layers as layers
 
 '''
 The refiner network 'refines' a synthetic image, making it more real.
@@ -17,14 +17,14 @@ The refiner network 'refines' a synthetic image, making it more real.
 
 class RefinerModel(BaseModel):
 
-    @base_utils.config_checker()
+    @config_checker()
     def __init__(self, config=None):
         super().__init__(config=config)
         with self.graph.as_default():
             self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
             self.build_graph(config=config)
 
-    @base_utils.config_checker(['image_channels',
+    @config_checker(['image_channels',
                                 'model_name'])
     def model_func(self, config=None):
         with tf.variable_scope(config.model_name, initializer=config.initializer, reuse=tf.AUTO_REUSE):
@@ -35,7 +35,7 @@ class RefinerModel(BaseModel):
             self.add_summary('output_image', x, 'image')
         return x
 
-    @base_utils.config_checker(['regularization_lambda'])
+    @config_checker(['regularization_lambda'])
     def loss_func(self, config=None):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
             # All images are fake (synthetic), so labels are all 0

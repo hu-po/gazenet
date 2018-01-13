@@ -1,33 +1,19 @@
 import re
-import os
 import glob
-from PIL import Image
+import os
+import sys
 import tensorflow as tf
+from PIL import Image
 import numpy as np
 
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(mod_path)
+
+from src.config.config import config_checker
+
 '''
-This file file contains common functions used for dataset manipulation, config checking, etc
+This file file contains common functions used for dataset manipulation
 '''
-
-
-def config_checker(config_properties=None):
-    """
-    Decorator checks to make sure the function contains the neccessary config values
-    :param config_properties: [string] list of strings of properties used in function
-    :return: function
-    """
-
-    def decorator(func):
-        def wrapped(*args, **kwargs):
-            assert kwargs.get('config', None) is not None, '%s needs config argument' % func.__name__
-            for prop in (config_properties or []):
-                assert kwargs['config'].__getattribute__(prop) is not None, \
-                    '%s needs the (not None) property %s' % (func.__name__, prop)
-            return func(*args, **kwargs)
-
-        return wrapped
-
-    return decorator
 
 
 def _int64_feature(value):

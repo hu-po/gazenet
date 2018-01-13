@@ -8,6 +8,21 @@ from collections import OrderedDict
 The base config class is extended to create all other config classes
 '''
 
+def config_checker(config_properties=None):
+    """
+    Decorator checks to make sure the function contains the neccessary config values
+    :param config_properties: [string] list of strings of properties used in function
+    :return: function
+    """
+    def decorator(func):
+        def wrapped(*args, **kwargs):
+            assert kwargs.get('config', None) is not None, '%s needs config argument' % func.__name__
+            for prop in (config_properties or []):
+                assert kwargs['config'].__getattribute__(prop) is not None, \
+                    '%s needs the (not None) property %s' % (func.__name__, prop)
+            return func(*args, **kwargs)
+        return wrapped
+    return decorator
 
 class Config(object):
     # Root directory for entire repo

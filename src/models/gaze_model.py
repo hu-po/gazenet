@@ -6,9 +6,9 @@ import tensorflow.contrib.slim as slim
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-import src.utils.base_utils as base_utils
-from src.models.base_model import BaseModel
-import src.models.custom_layers as layers
+from src.config.config import config_checker
+from src.models.model import BaseModel
+import src.models.layers as layers
 
 '''
 This network outputs the gaze location for a given webcam image.
@@ -18,14 +18,14 @@ This model is inspired by the architechture in [1].
 
 class GazeModel(BaseModel):
 
-    @base_utils.config_checker()
+    @config_checker()
     def __init__(self, config=None):
         super().__init__(config=config)
         with self.graph.as_default():
             self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
             self.build_graph(config=config)
 
-    @base_utils.config_checker()
+    @config_checker()
     def model_func(self, config=None):
         with tf.variable_scope('model', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
             x = self.image
