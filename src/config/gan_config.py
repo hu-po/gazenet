@@ -1,7 +1,6 @@
-from collections import OrderedDict
 import tensorflow.contrib.slim as slim
 from src.config.config import Config
-import src.utils.data_utils as base_utils
+import src.utils.data_utils as data_utils
 
 '''
 This file contains all the parameters for training the GAN component of this project. Each
@@ -36,7 +35,8 @@ class FakeConfig(Config):
 
     def __init__(self):
         self.dataset_name = '04012018_headlook'
-        self.num_images = 1000
+        self.dataset_type = 'image'
+        self.dataset_len = 1000
         self.tfrecord_name = 'image.tfrecords'
         # Bigger buffer means better shuffling, but more memory used
         self.buffer_size = 16
@@ -44,20 +44,21 @@ class FakeConfig(Config):
         # Build the rest of the dataset related parameters
         self.build_dataset_config()
         # Create tf record dataset from data dir
-        base_utils.image_to_tfrecords(config=self)
+        data_utils.to_tfrecords(config=self)
 
 
 class RealConfig(Config):
 
     def __init__(self):
         self.dataset_name = '080118_real'
-        self.num_images = 100
+        self.dataset_type = 'image'
+        self.dataset_len = 100
         self.tfrecord_name = 'image.tfrecords'
         self.buffer_size = 16
         self.batch_size = 8
         self.build_dataset_config()
         # Create tf record dataset from data dir
-        base_utils.image_to_tfrecords(config=self)
+        data_utils.to_tfrecords(config=self)
 
 
 class DiscrimConfig(Config):

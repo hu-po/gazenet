@@ -13,7 +13,7 @@ This file contains common functions used for training (input feeding, data decod
 
 
 @config_checker(['image_height', 'image_width', 'image_channels'])
-def decode_image(serialized_example, config=None):
+def _decode_image(serialized_example, config=None):
     """
     Decodes a serialized example for an image
     :param serialized_example: (parsed string Tensor) serialized example
@@ -30,7 +30,7 @@ def decode_image(serialized_example, config=None):
 
 
 @config_checker(['image_height', 'image_width', 'image_channels'])
-def decode_gaze(serialized_example, config=None):
+def _decode_gaze(serialized_example, config=None):
     """
     Decodes a serialized example for gaze images and labels
     :param serialized_example: (parsed string Tensor) serialized example
@@ -53,53 +53,60 @@ def decode_gaze(serialized_example, config=None):
     return image, target
 
 
-@config_checker(['random_brigtness', 'brightnes_max_delta',
-                 'random_contrast', 'contrast_lower', 'contrast_upper'])
-def image_augmentation(image, label, config=None):
+@config_checker(['dataset_type', 'random_brigtness', 'random_contrast'])
+def _image_augmentation(*args, config=None):
     with tf.name_scope('image_augment'):
-        # Apply image adjustments to reduce overfitting
+        image = args[0]
         if config.random_brigtness:
             image = tf.image.random_brightness(image, config.brightnes_max_delta)
         if config.random_contrast:
             image = tf.image.random_contrast(image, config.contrast_lower, config.contrast_upper)
-    return image, label
-
-
-@config_checker(['grayscale'])
-def grayscale(image, label=None, config=None):
-    with tf.name_scope('image_prep'):
-        if config.grayscale:
-            image = tf.image.rgb_to_grayscale(image)
-    if label is None:
+        if config.dataset_type == 'gaze':
+            return image, args[1]
         return image
-    return image, label
 
 
-@config_checker()
-def standardize(image, label=None, config=None):
+@config_checker(['dataset_type', 'grayscale'])
+def _grayscale(*args, config=None):
+    with tf.name_scope('grayscale'):
+        image = args[0]
+        image = tf.image.rgb_to_grayscale(image)
+        if config.dataset_type == 'gaze':
+            return image, args[1]
+        return image
+
+
+@config_checker(['dataset_type'])
+def _standardize(*args, config=None):
     with tf.name_scope('image_prep'):
-        # Standardize the images
+        image = args[0]
         image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
-        if label is None:
-            return image
-        # Standardize the labels
-        label = tf.cast(label, tf.float32) * (1. / 100) - 0.5
-    return image, label
+        if config.dataset_type == 'gaze':
+            label = args[1]
+            label = tf.cast(label, tf.float32) * (1. / 100) - 0.5
+            return image, label
+        return image
 
 
-@config_checker(['num_images',
-                 'tfrecord_path',
-                 'buffer_size',
-                 'batch_size'])
-def image_feed(config=None):
+@config_checker(['dataset_type', 'dataset_len', 'tfrecord_path', 'image_augmentation', 'shuffle', 'batch_size'])
+def input_feed(config=None):
     with tf.name_scope('input_feed_gen'):
         dataset = tf.data.TFRecordDataset(config.tfrecord_path)
-        dataset = dataset.take(config.num_images)
-        dataset = dataset.map(lambda x: decode_image(x, config=config))
-        dataset = dataset.map(lambda i: grayscale(i, config=config))
-        dataset = dataset.map(lambda i: standardize(i, config=config))
-        dataset = dataset.repeat()  # Repeat dataset indefinitely
-        dataset = dataset.shuffle(config.buffer_size)
+        dataset = dataset.take(config.dataset_len)
+        if config.dataset_type == 'image':
+            dataset = dataset.map(lambda x: _decode_image(x, config=config))
+            dataset = dataset.repeat()  # Repeat dataset indefinitely
+        elif config.dataset_type == 'gaze':
+            dataset = dataset.map(lambda x: _decode_gaze(x, config=config))
+        else:
+            raise Exception('Need to provide train utils for this dataset type')
+        if config.image_augmentation:
+            dataset = dataset.map(lambda x: _image_augmentation(x, config=config))
+        if config.grayscale:
+            dataset = dataset.map(lambda x: _grayscale(x, config=config))
+        dataset = dataset.map(lambda x: _standardize(x, config=config))
+        if config.shuffle:
+            dataset = dataset.shuffle(config.buffer_size)
         dataset = dataset.batch(config.batch_size)
         iterator = dataset.make_initializable_iterator()
     return iterator, iterator.get_next()

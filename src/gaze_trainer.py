@@ -18,40 +18,6 @@ and decoding the data (should be in TFRecords format).
 '''
 
 
-@config_checker(['num_train_examples',
-                 'train_tfrecord_path',
-                 'buffer_size',
-                 'batch_size'])
-def _train_feed(config=None):
-    with tf.name_scope('train_input'):
-        dataset = tf.data.TFRecordDataset(config.train_tfrecord_path)
-        dataset = dataset.take(config.num_train_examples)
-        dataset = dataset.map(lambda x: train_utils.decode_gaze(x, config=config))
-        dataset = dataset.map(lambda i, t: train_utils.image_augmentation(i, t, config=config))
-        dataset = dataset.map(lambda i, t: train_utils.grayscale(i, t, config=config))
-        dataset = dataset.map(lambda i, t: train_utils.standardize(i, t, config=config))
-        dataset = dataset.shuffle(config.buffer_size)
-        dataset = dataset.batch(config.batch_size)
-        iterator = dataset.make_initializable_iterator()
-    return iterator, iterator.get_next()
-
-
-@config_checker(['num_test_examples',
-                 'test_tfrecord_path',
-                 'buffer_size',
-                 'batch_size'])
-def _test_feed(config=None):
-    with tf.name_scope('test_input'):
-        dataset = tf.data.TFRecordDataset(config.test_tfrecord_path)
-        dataset = dataset.take(config.num_test_examples)
-        dataset = dataset.map(lambda x: train_utils.decode_gaze(x, config=config))
-        dataset = dataset.map(lambda i, t: train_utils.grayscale(i, t, config=config))
-        dataset = dataset.map(lambda i, t: train_utils.standardize(i, t, config=config))
-        dataset = dataset.batch(config.num_test_examples)
-        iterator = dataset.make_initializable_iterator()
-    return iterator, iterator.get_next()
-
-
 @config_checker(['run_log_path',
                  'run_checkpoint_path',
                  'num_epochs',
@@ -62,8 +28,8 @@ def run_training(config=None):
         Train gaze_trainer for the given number of steps.
     """
     # train and test iterators, need dataset to create feedable iterator
-    train_iterator, train_batch = _train_feed(config=config)
-    test_iterator, test_batch = _test_feed(config=config)
+    train_iterator, train_batch = train_utils.gaze_feed(config=config.train_dataset)
+    test_iterator, test_batch = train_utils.gaze_feed(config=config.test_dataset)
 
     # Get images and labels from iterator, create model from class
     model = GazeModel(config=config)

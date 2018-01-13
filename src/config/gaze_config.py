@@ -1,6 +1,6 @@
 import os
 from src.config.config import Config
-import src.utils.data_utils as base_utils
+import src.utils.data_utils as data_utils
 
 '''
 GazeConfig class contains parameters used to train the gaze models.
@@ -17,30 +17,15 @@ class GazeConfig(Config):
         # This config contains hyperparameters
         self.build_hyperparameter_config()
 
-        # Gazenet uses a single dataset
-        self.dataset_name = '100118_fixedhead'
-        # Train targets are taken from image filenames
-        self.filename_regex = '(\d.\d+)_(\d.\d+).png'
-        self.train_test_split = 0.95
-        # Brightness Augmentation
-        self.random_brigtness = False
-        self.brightnes_max_delta = 0.1
-        # Contrast Augmentation
-        self.random_contrast = False
-        self.contrast_lower = 0.01
-        self.contrast_upper = 0.2
+        # Seperate dataset configs
+        self.train_dataset = TrainConfig()
+        self.test_dataset = TestConfig()
 
         # Training parameters
         self.num_epochs = 30
         self.batch_size = 16
         # Early stopping
         self.patience = 3
-        # Number of train examples (if you want to limit training data)
-        self.num_train_examples = 8000
-        # Number of test examples in each validation step
-        self.num_test_examples = 16
-        # Bigger buffer means better shuffling but slower start up and more memory used.
-        self.buffer_size = 32
         # Save model checkpoint
         self.save_model = False
         self.save_every_n_epochs = 50
@@ -65,13 +50,52 @@ class GazeConfig(Config):
         self.hyperparams['rb_kernel'] = [3, 4]
         self.hyperparams['batch_norm'] = [True, False]
 
-        # Dataset and tfrecord paths
-        self.dataset_path = os.path.join(self.data_dir, self.dataset_name)
-        self.train_tfrecord_path = os.path.join(self.dataset_path, 'train.tfrecords')
-        self.test_tfrecord_path = os.path.join(self.dataset_path, 'test.tfrecords')
-
-        # Convert image data in folder to tfrecords
-        base_utils.gazedata_to_tfrecords(config=self)
-
         # Generate all runs from hyperparameters
         self.generate_runs()
+
+
+class TrainConfig(Config):
+
+    def __init__(self):
+        self.dataset_name = os.path.join('100118_fixedhead', 'train')
+        self.dataset_type = 'gaze'
+        self.tfrecord_name = 'train.tfrecords'
+        # Train targets are taken from image filenames
+        self.filename_regex = '(\d.\d+)_(\d.\d+).png'
+        self.dataset_len = 1000
+        self.shuffle = True
+        self.buffer_size = 16
+        self.batch_size = 8
+        # Image augmentation when training
+        self.image_augmentation = True
+        # Brightness Augmentation
+        self.random_brigtness = True
+        self.brightnes_max_delta = 0.1
+        # Contrast Augmentation
+        self.random_contrast = True
+        self.contrast_lower = 0.01
+        self.contrast_upper = 0.2
+        # Build the rest of the dataset related parameters
+        self.build_dataset_config()
+        # Create tf record dataset from data dir
+        data_utils.to_tfrecords(config=self)
+
+
+class TestConfig(Config):
+
+    def __init__(self):
+        self.dataset_name = os.path.join('100118_fixedhead', 'test')
+        self.dataset_type = 'gaze'
+        self.tfrecord_name = 'test.tfrecords'
+        # Train targets are taken from image filenames
+        self.filename_regex = '(\d.\d+)_(\d.\d+).png'
+        self.dataset_len = 20
+        self.shuffle = False
+        self.buffer_size = 20
+        self.batch_size = 20
+        # Image augmentation when training
+        self.image_augmentation = False
+        # Build the rest of the dataset related parameters
+        self.build_dataset_config()
+        # Create tf record dataset from data dir
+        data_utils.to_tfrecords(config=self)

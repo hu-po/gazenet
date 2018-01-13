@@ -45,8 +45,7 @@ def _imagepath_to_string(image_path, config=None):
 
 
 @config_checker()
-def _write_gazedata_tfrecord(tfrecord_path, image_paths, config=None):
-    writer = tf.python_io.TFRecordWriter(tfrecord_path)
+def _write_gazedata_tfrecord(image_paths, writer, config=None):
     for image_path in image_paths:
         img_string = _imagepath_to_string(image_path, config=config)
         gaze_x, gaze_y = _extract_target_from_gazefilename(image_path, config=config)
@@ -58,38 +57,10 @@ def _write_gazedata_tfrecord(tfrecord_path, image_paths, config=None):
         }
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer.write(example.SerializeToString())
-    writer.close()
-
-
-@config_checker(['dataset_path', 'train_test_split', 'train_tfrecord_path', 'test_tfrecord_path'])
-def gazedata_to_tfrecords(config=None):
-    if os.path.exists(config.train_tfrecord_path) or os.path.exists(config.test_tfrecord_path):
-        print('TFRecords have already been created for this dataset')
-        return
-    image_paths = glob.glob(os.path.join(config.dataset_path, '*.png'))
-    # Split image paths into test and train
-    total_images = len(image_paths)
-    num_train = int(config.train_test_split * total_images)
-    num_test = total_images - num_train
-    print('There are %d images in %s. Using a %0.2f split, we get %d train and %d test' %
-          (total_images, config.dataset_name, config.train_test_split, num_train, num_test))
-    # Add each image to either test or train list
-    test_idx = np.random.choice(total_images, num_test)
-    train_image_paths = []
-    test_image_paths = []
-    for i, path in enumerate(image_paths):
-        if i in test_idx:
-            train_image_paths.append(path)
-        else:
-            test_image_paths.append(path)
-    # Write train and test tfrecords to paths in config
-    _write_gazedata_tfrecord(config.train_tfrecord_path, train_image_paths, config=config)
-    _write_gazedata_tfrecord(config.test_tfrecord_path, test_image_paths, config=config)
 
 
 @config_checker()
-def _write_image_tfrecord(tfrecord_path, image_paths, config=None):
-    writer = tf.python_io.TFRecordWriter(tfrecord_path)
+def _write_image_tfrecord(image_paths, writer, config=None):
     for image_path in image_paths:
         img_string = _imagepath_to_string(image_path, config=config)
         # Feature defines each discrete entry in the tfrecords file
@@ -98,18 +69,20 @@ def _write_image_tfrecord(tfrecord_path, image_paths, config=None):
         }
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer.write(example.SerializeToString())
-    writer.close()
 
 
-@config_checker(['tfrecord_path',
-                 'dataset_path',
-                 'dataset_name'])
-def image_to_tfrecords(config=None):
+@config_checker(['dataset_path', 'dataset_name', 'dataset_type'])
+def to_tfrecords(config=None):
     if os.path.exists(config.tfrecord_path):
         print('TFRecords has already been created for this dataset')
         return
     image_paths = glob.glob(os.path.join(config.dataset_path, '*.png'))
     print('There are %d images in %s' % (len(image_paths), config.dataset_name))
-
-    # Write synthetic and real tfrecords to paths in config
-    _write_image_tfrecord(config.tfrecord_path, image_paths, config=config)
+    writer = tf.python_io.TFRecordWriter(config.tfrecord_path)
+    if config.dataset_type == 'image':
+        _write_image_tfrecord(image_paths, writer, config=config)
+    elif config.dataset_type == 'gaze':
+        _write_gazedata_tfrecord(image_paths, writer, config=config)
+    else:
+        raise Exception('Need to provide utils for this datatype')
+    writer.close()
