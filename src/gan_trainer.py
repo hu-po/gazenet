@@ -11,6 +11,7 @@ from src.config.config import config_checker
 from src.models.discrim_model import DiscriminatorModel
 from src.models.refiner_model import RefinerModel
 from src.config.gan_config import GANConfig
+import src.utils.train_utils as train_utils
 
 '''
 This file is used to train the GAN, which is composed of a refiner net and a 

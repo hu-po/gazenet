@@ -56,33 +56,33 @@ def _decode_gaze(serialized_example, config=None):
 @config_checker(['dataset_type', 'random_brigtness', 'random_contrast'])
 def _image_augmentation(*args, config=None):
     with tf.name_scope('image_augment'):
-        image = args[0]
+        image = args[0][0]
         if config.random_brigtness:
             image = tf.image.random_brightness(image, config.brightnes_max_delta)
         if config.random_contrast:
             image = tf.image.random_contrast(image, config.contrast_lower, config.contrast_upper)
         if config.dataset_type == 'gaze':
-            return image, args[1]
+            return image, args[0][1]
         return image
 
 
 @config_checker(['dataset_type', 'grayscale'])
 def _grayscale(*args, config=None):
     with tf.name_scope('grayscale'):
-        image = args[0]
+        image = args[0][0]
         image = tf.image.rgb_to_grayscale(image)
         if config.dataset_type == 'gaze':
-            return image, args[1]
+            return image, args[0][1]
         return image
 
 
 @config_checker(['dataset_type'])
 def _standardize(*args, config=None):
     with tf.name_scope('image_prep'):
-        image = args[0]
+        image = args[0][0]
         image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
         if config.dataset_type == 'gaze':
-            label = args[1]
+            label = args[0][1]
             label = tf.cast(label, tf.float32) * (1. / 100) - 0.5
             return image, label
         return image
@@ -101,10 +101,10 @@ def input_feed(config=None):
         else:
             raise Exception('Need to provide train utils for this dataset type')
         if config.image_augmentation:
-            dataset = dataset.map(lambda x: _image_augmentation(x, config=config))
+            dataset = dataset.map(lambda *x: _image_augmentation(x, config=config))
         if config.grayscale:
-            dataset = dataset.map(lambda x: _grayscale(x, config=config))
-        dataset = dataset.map(lambda x: _standardize(x, config=config))
+            dataset = dataset.map(lambda *x: _grayscale(x, config=config))
+        dataset = dataset.map(lambda *x: _standardize(x, config=config))
         if config.shuffle:
             dataset = dataset.shuffle(config.buffer_size)
         dataset = dataset.batch(config.batch_size)

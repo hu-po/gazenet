@@ -74,7 +74,7 @@ def _write_image_tfrecord(image_paths, writer, config=None):
 @config_checker(['dataset_path', 'dataset_name', 'dataset_type'])
 def to_tfrecords(config=None):
     if os.path.exists(config.tfrecord_path):
-        print('TFRecords has already been created for this dataset')
+        print('TFRecords has already been created for %s' % config.dataset_name)
         return
     image_paths = glob.glob(os.path.join(config.dataset_path, '*.png'))
     print('There are %d images in %s' % (len(image_paths), config.dataset_name))

@@ -11,7 +11,7 @@ class GazeConfig(Config):
 
     def __init__(self):
         # Experiment name is the root directory for logs
-        self.experiment_name = 'res_batch_gaze'
+        self.experiment_name = 'gazedongal'
         self.build_experiment_config()
 
         # This config contains hyperparameters
@@ -23,8 +23,9 @@ class GazeConfig(Config):
 
         # Training parameters
         self.num_epochs = 30
-        self.batch_size = 16
         # Early stopping
+        self.max_loss = 100
+        self.best_loss = 100
         self.patience = 3
         # Save model checkpoint
         self.save_model = False
@@ -62,10 +63,10 @@ class TrainConfig(Config):
         self.tfrecord_name = 'train.tfrecords'
         # Train targets are taken from image filenames
         self.filename_regex = '(\d.\d+)_(\d.\d+).png'
-        self.dataset_len = 1000
+        self.dataset_len = 8000
         self.shuffle = True
-        self.buffer_size = 16
-        self.batch_size = 8
+        self.buffer_size = 64
+        self.batch_size = 16
         # Image augmentation when training
         self.image_augmentation = True
         # Brightness Augmentation
