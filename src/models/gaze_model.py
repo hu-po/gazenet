@@ -21,8 +21,9 @@ class GazeModel(BaseModel):
     @base_utils.config_checker()
     def __init__(self, config=None):
         super().__init__(config=config)
-        self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
-        self.build_graph(config=config)
+        with self.graph.as_default():
+            self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
+            self.build_graph(config=config)
 
     @base_utils.config_checker()
     def model_func(self, config=None):

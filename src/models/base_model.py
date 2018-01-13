@@ -18,25 +18,30 @@ class BaseModel(object):
                                 'image_height',
                                 'image_channels'])
     def __init__(self, config=None):
-        # All models in this repo have the same image input
-        self.image = tf.placeholder(tf.float32, shape=(None,
-                                                       config.image_height,
-                                                       config.image_width,
-                                                       config.image_channels),
-                                    name='input_image')
-        # Boolean indicates whether model is in training mode
-        self.is_training = tf.placeholder(tf.bool, shape=[], name='is_training')
-        # List of summaries in this model class
-        self.summaries = []
+        self.graph = tf.Graph()
+        with self.graph.as_default():
+            # All models in this repo have the same image input
+            self.image = tf.placeholder(tf.float32, shape=(None,
+                                                           config.image_height,
+                                                           config.image_width,
+                                                           config.image_channels),
+                                        name='input_image')
+            # Boolean indicates whether model is in training mode
+            self.is_training = tf.placeholder(tf.bool, shape=[], name='is_training')
+            # List of summaries in this model class
+            self.summaries = []
 
+    @base_utils.config_checker()
     def build_graph(self, config=None):
         self.predict = self.model_func(config=config)
         self.loss = self.loss_func(config=config)
         self.optimize = self.optimize_func(config=config)
 
+    @base_utils.config_checker()
     def model_func(self, config=None):
         raise NotImplementedError('Model must have a model function')
 
+    @base_utils.config_checker()
     def loss_func(self, config=None):
         raise NotImplementedError('Model must have a loss function')
 
