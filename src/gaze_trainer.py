@@ -76,11 +76,11 @@ def run_training(config=None):
     gaze_summary = tf.summary.merge(model.summaries)
 
     # Early stopping params
-    best_loss = 0
+    best_loss = 100
     steps_since_loss_decrease = -1
 
     with tf.Session() as sess:
-    # with tf_debug.LocalCLIDebugWrapperSession(tf.Session()) as sess:
+        # with tf_debug.LocalCLIDebugWrapperSession(tf.Session()) as sess:
         # Initialize variables
         sess.run(init_op)
         # Model saver and log writers
@@ -115,9 +115,8 @@ def run_training(config=None):
             epoch_test_start = time.time()
             sess.run(test_iterator.initializer)
             image_batch, label_batch = sess.run(test_batch)
-            loss, test_summary, _ = sess.run([model.loss,
-                                           gaze_summary,
-                                           model.debug], feed_dict={model.image: image_batch,
+            loss, test_summary = sess.run([model.loss,
+                                           gaze_summary], feed_dict={model.image: image_batch,
                                                                      model.label: label_batch,
                                                                      model.is_training: False})
 
