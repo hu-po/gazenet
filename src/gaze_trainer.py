@@ -29,7 +29,7 @@ def run_training(config=None):
     """
         Train gaze_trainer for the given number of steps.
     """
-    model = GazeModel(config=config)
+    model = GazeModel(config=config.gaze_model)
 
     with model.graph.as_default():
         # train and test iterators, need dataset to create feedable iterator

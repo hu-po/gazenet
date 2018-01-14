@@ -13,29 +13,31 @@ class GazeConfig(Config):
         # Experiment name is the root directory for logs
         self.experiment_name = 'gazedongal'
         self.build_experiment_config()
-
         # This config contains hyperparameters
         self.build_hyperparameter_config()
-
-        # Seperate dataset configs
+        # Separate configs for model and datasets
         self.train_dataset = TrainConfig()
         self.test_dataset = TestConfig()
-
+        self.gaze_model = GazeModel()
         # Training parameters
         self.num_epochs = 30
         # Early stopping
         self.max_loss = 100
         self.best_loss = 100
         self.patience = 3
-        # Save model checkpoint
-        self.save_model = False
-        self.save_every_n_epochs = 50
         # Optimizer parameters
         self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
         self.hyperparams['optimizer_type'] = ['adam']
+        # Generate all runs from hyperparameters
+        self.generate_runs()
 
-        # Model parameters
+
+class GazeModel(Config):
+
+    def __init__(self, exp_config_handle=None):
         self.model_name = 'gaze'
+        # This config contains hyperparameters
+        self.build_hyperparameter_config(exp_config_handle=exp_config_handle)
         self.dropout_keep_prob = 0.6
         self.hyperparams['fc_layers'] = [[128, 128, 64],
                                          [256, 32],
@@ -50,6 +52,10 @@ class GazeConfig(Config):
         self.hyperparams['rb_feat'] = [8, 16, 32, 64]
         self.hyperparams['rb_kernel'] = [3, 4]
         self.hyperparams['batch_norm'] = [True, False]
+
+        # Save model checkpoint
+        self.save_model = False
+        self.save_every_n_epochs = 50
 
         # Generate all runs from hyperparameters
         self.generate_runs()

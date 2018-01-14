@@ -6,27 +6,14 @@ import tensorflow.contrib.slim as slim
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-from src.config.config import config_checker
-from src.models.model import BaseModel
-import src.models.layers as layers
+from src.models.model import Model
 
 '''
 The refiner network 'refines' a synthetic image, making it more real.
 '''
 
 
-class RefinerModel(BaseModel):
-
-    @config_checker()
-    def __init__(self, config=None):
-        super().__init__(config=config)
-        with self.graph.as_default():
-            self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
-            self.build_graph()
-
-    def model_base(self, x):
-        x = layers.resnet(x, self)
-        return x
+class RefinerModel(Model):
 
     def model_head(self, x):
         x = slim.conv2d(x, self.config.image_channels, [1, 1], scope='final_refiner_conv')

@@ -5,40 +5,39 @@ import tensorflow as tf
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-from src.config.config import config_checker
+import src.models.layers as layers
 
 '''
 Base model class is inherited to re-use some common code
 '''
 
 
-class BaseModel(object):
+class Model(object):
 
-    @config_checker(['image_width',
-                     'image_height',
-                     'image_channels'])
     def __init__(self, config=None):
         self.graph = tf.Graph()
         self.config = config
         with self.graph.as_default():
-            # All models in this repo have the same image input
+            # All models in this repo have image input and labels
             self.image = tf.placeholder(tf.float32, shape=(None,
-                                                           config.image_height,
-                                                           config.image_width,
-                                                           config.image_channels),
+                                                           self.config.image_height,
+                                                           self.config.image_width,
+                                                           self.config.image_channels),
                                         name='input_image')
+            self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
             # Boolean indicates whether model is in training mode
             self.is_training = tf.placeholder(tf.bool, shape=[], name='is_training')
             # List of summaries in this model class
             self.summaries = []
+            # Build graph
+            self.predict = self.model_func()
+            self.loss = self.loss_func()
+            self.optimize = self.optimize_func()
 
-    def build_graph(self):
-        self.predict = self.model_func()
-        self.loss = self.loss_func()
-        self.optimize = self.optimize_func()
-
-    def model_base(self, input):
-        raise NotImplementedError('Model must have a model base function')
+    # TODO: Load saved modelsl head function')
+    def model_base(self, x):
+        x = layers.resnet(x, self)
+        return x
 
     def model_head(self, input):
         raise NotImplementedError('Model must have a model head function')
@@ -47,8 +46,8 @@ class BaseModel(object):
         with tf.variable_scope(self.config.model_name, initializer=self.config.initializer, reuse=tf.AUTO_REUSE):
             x = self.image
             self.add_summary('input_image', x, 'image')
-            x = self.base_func(x)
-            x = self.head_func(x)
+            x = self.model_base(x)
+            x = self.model_head(x)
             return x
 
     def loss_func(self):
