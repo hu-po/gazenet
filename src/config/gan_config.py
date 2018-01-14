@@ -26,9 +26,9 @@ class GANConfig(Config):
         self.discrim_model = DiscrimConfig(exp_config_handle=self)
 
         # Training parameters (from Algorithm 1 in [1])
-        self.num_training_steps = 5 #100  # T
-        self.num_refiner_steps = 5 #200  # Kg
-        self.num_discrim_steps = 5 #50  # Kd
+        self.num_training_steps = 5  # 100  # T
+        self.num_refiner_steps = 5  # 200  # Kg
+        self.num_discrim_steps = 5  # 50  # Kd
 
 
 class FakeConfig(Config):

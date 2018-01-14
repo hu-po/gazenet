@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import random
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 
@@ -18,13 +19,9 @@ and decoding the data (should be in TFRecords format).
 '''
 
 
-@config_checker(['run_log_path',
-                 'run_checkpoint_path',
-                 'num_epochs',
+@config_checker(['num_epochs',
                  'max_loss',
-                 'best_loss',
-                 'save_model',
-                 'save_every_n_epochs'])
+                 'best_loss'])
 def run_training(config=None):
     """
         Train gaze_trainer for the given number of steps.
@@ -48,9 +45,8 @@ def run_training(config=None):
         # Initialize variables
         sess.run(init_op)
         # Model saver and log writers
-        test_writer = tf.summary.FileWriter(os.path.join(config.run_log_path, 'test'), sess.graph)
-        train_writer = tf.summary.FileWriter(os.path.join(config.run_log_path, 'train'), sess.graph)
-        saver = tf.train.Saver()
+        test_writer = tf.summary.FileWriter(os.path.join(config.gaze_model.run_log_path, 'test'), sess.graph)
+        train_writer = tf.summary.FileWriter(os.path.join(config.gaze_model.run_log_path, 'train'), sess.graph)
         for epoch_idx in range(config.num_epochs):
             # Training
             epoch_train_start = time.time()
@@ -72,9 +68,9 @@ def run_training(config=None):
                                                                                 epoch_train_duration,
                                                                                 num_train_steps,
                                                                                 loss))
-            if config.save_model and ((epoch_idx + 1) % config.save_every_n_epochs) == 0:
-                save_path = saver.save(sess, os.path.join(config.checkpoint_path, str(epoch_idx + 1)))
-                print('Model checkpoint saved at %s' % save_path)
+            # if config.save_model and ((epoch_idx + 1) % config.save_every_n_epochs) == 0:
+            #     save_path = saver.save(sess, os.path.join(config.checkpoint_path, str(epoch_idx + 1)))
+            #     print('Model checkpoint saved at %s' % save_path)
             # Testing (one single batch is run)
             epoch_test_start = time.time()
             sess.run(test_iterator.initializer)
@@ -116,15 +112,15 @@ def main():
     # Create config and convert dataset to usable form
     config = GazeConfig()
     # Run training for every 'run' (different permutations of hyperparameters)
-    for i in range(config.num_runs):
-        # config.prepare_run(i)
-        # run_training(config=config)
-        try:
-            config.prepare_run(i)
-            run_training(config=config)
-        except Exception as e:  # If something wierd happens because of the particular hyperparameters
-            # Clear the graph just in case there is lingering stuff
-            tf.reset_default_graph()
+    for i in range(config.gaze_model.num_runs):
+        config.gaze_model.prepare_run(i)
+        run_training(config=config)
+        # try:
+        #     config.prepare_run(i)
+        #     run_training(config=config)
+        # except Exception as e:  # If something wierd happens because of the particular hyperparameters
+        #     # Clear the graph just in case there is lingering stuff
+        #     tf.reset_default_graph()
 
 
 if __name__ == '__main__':

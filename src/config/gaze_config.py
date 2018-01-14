@@ -1,6 +1,7 @@
 import os
 from src.config.config import Config
 import src.utils.data_utils as data_utils
+import tensorflow.contrib.slim as slim
 
 '''
 GazeConfig class contains parameters used to train the gaze models.
@@ -18,18 +19,13 @@ class GazeConfig(Config):
         # Separate configs for model and datasets
         self.train_dataset = TrainConfig()
         self.test_dataset = TestConfig()
-        self.gaze_model = GazeModel()
+        self.gaze_model = GazeModel(exp_config_handle=self)
         # Training parameters
         self.num_epochs = 30
         # Early stopping
         self.max_loss = 100
         self.best_loss = 100
         self.patience = 3
-        # Optimizer parameters
-        self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
-        self.hyperparams['optimizer_type'] = ['adam']
-        # Generate all runs from hyperparameters
-        self.generate_runs()
 
 
 class GazeModel(Config):
@@ -38,6 +34,11 @@ class GazeModel(Config):
         self.model_name = 'gaze'
         # This config contains hyperparameters
         self.build_hyperparameter_config(exp_config_handle=exp_config_handle)
+        # Optimizer parameters
+        self.initializer = slim.xavier_initializer()
+        self.hyperparams['learning_rate'] = [0.01, 0.005, 0.001]
+        self.hyperparams['optimizer_type'] = ['adam']
+        # Model parameters
         self.dropout_keep_prob = 0.6
         self.hyperparams['fc_layers'] = [[128, 128, 64],
                                          [256, 32],

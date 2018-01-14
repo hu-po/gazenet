@@ -6,14 +6,18 @@ import cv2
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-from src.config.config import BaseConfig
+from src.config.config import Config
+from src.utils.cam_utils import WebcamVideoStream, FPS
 
 '''
 This python file collects unlabeled real gaze images using the webcamera.
+
+Sources:
+[1] https://github.com/datitran/object_detector_app
 '''
 
 # Config is just a base config plus some extra
-config = BaseConfig()
+config = Config()
 DATASET_NAME = '080118_real'
 NUM_IMAGES = 100
 

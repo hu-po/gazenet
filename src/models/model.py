@@ -17,6 +17,7 @@ class Model(object):
     def __init__(self, config=None):
         self.graph = tf.Graph()
         self.config = config
+        self.saver = None
         with self.graph.as_default():
             # All models in this repo have image input and labels
             self.image = tf.placeholder(tf.float32, shape=(None,
@@ -34,7 +35,7 @@ class Model(object):
             self.loss = self.loss_func()
             self.optimize = self.optimize_func()
 
-    # TODO: Load saved modelsl head function')
+    # TODO: Load saved model
     def model_base(self, x):
         x = layers.resnet(x, self)
         return x
@@ -44,11 +45,11 @@ class Model(object):
 
     def model_func(self):
         with tf.variable_scope(self.config.model_name, initializer=self.config.initializer, reuse=tf.AUTO_REUSE):
-            x = self.image
-            self.add_summary('input_image', x, 'image')
-            x = self.model_base(x)
-            x = self.model_head(x)
-            return x
+            self.add_summary('input_image', self.image, 'image')
+            base = self.model_base(self.image)
+            head = self.model_head(base)
+            # self.saver = tf.train.Saver({'base': base, 'head': head})
+            return head
 
     def loss_func(self):
         raise NotImplementedError('Model must have a loss function')
