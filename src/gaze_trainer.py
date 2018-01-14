@@ -117,15 +117,14 @@ def main():
     config = GazeConfig()
     # Run training for every 'run' (different permutations of hyperparameters)
     for i in range(config.num_runs):
-        config.prepare_run(i)
-        run_training(config=config)
-
-        # try:
-        #     config.prepare_run(i)
-        #     run_training(config=config)
-        # except Exception as e:  # If something wierd happens because of the particular hyperparameters
-        #     # Clear the graph just in case there is lingering stuff
-        #     tf.reset_default_graph()
+        # config.prepare_run(i)
+        # run_training(config=config)
+        try:
+            config.prepare_run(i)
+            run_training(config=config)
+        except Exception as e:  # If something wierd happens because of the particular hyperparameters
+            # Clear the graph just in case there is lingering stuff
+            tf.reset_default_graph()
 
 
 if __name__ == '__main__':

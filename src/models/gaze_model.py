@@ -23,22 +23,20 @@ class GazeModel(BaseModel):
         super().__init__(config=config)
         with self.graph.as_default():
             self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
-            self.build_graph(config=config)
+            self.build_graph()
 
-    @config_checker()
-    def model_func(self, config=None):
-        with tf.variable_scope('model', initializer=slim.xavier_initializer(), reuse=tf.AUTO_REUSE):
-            x = self.image
-            self.add_summary('input_image', x, 'image')
-            # Model arch is a stack of conv blocks with residual connections, then a fully connected head
-            x = layers.resnet(x, self, config=config)
-            x = layers.dim_reductor(x, self, config=config)
-            x = layers.fc_head(x, self, config=config)
-            # Final layer for regression has no activation function
-            x = slim.fully_connected(x, 2, activation_fn=None, scope='output')
+    def model_base(self, x):
+        x = layers.resnet(x, self)
         return x
 
-    def loss_func(self, config=None):
+    def model_head(self, x):
+        x = layers.dim_reductor(x, self)
+        x = layers.fc_head(x, self)
+        # Final layer for regression has no activation function
+        x = slim.fully_connected(x, 2, activation_fn=None, scope='output')
+        return x
+
+    def loss_func(self):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
             mse = tf.losses.mean_squared_error(labels=self.label, predictions=self.predict, scope='mse')
             self.add_summary('mse', mse, 'scalar')

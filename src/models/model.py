@@ -19,6 +19,7 @@ class BaseModel(object):
                      'image_channels'])
     def __init__(self, config=None):
         self.graph = tf.Graph()
+        self.config = config
         with self.graph.as_default():
             # All models in this repo have the same image input
             self.image = tf.placeholder(tf.float32, shape=(None,
@@ -31,18 +32,26 @@ class BaseModel(object):
             # List of summaries in this model class
             self.summaries = []
 
-    @config_checker()
-    def build_graph(self, config=None):
-        self.predict = self.model_func(config=config)
-        self.loss = self.loss_func(config=config)
-        self.optimize = self.optimize_func(config=config)
+    def build_graph(self):
+        self.predict = self.model_func()
+        self.loss = self.loss_func()
+        self.optimize = self.optimize_func()
 
-    @config_checker()
-    def model_func(self, config=None):
-        raise NotImplementedError('Model must have a model function')
+    def model_base(self, input):
+        raise NotImplementedError('Model must have a model base function')
 
-    @config_checker()
-    def loss_func(self, config=None):
+    def model_head(self, input):
+        raise NotImplementedError('Model must have a model head function')
+
+    def model_func(self):
+        with tf.variable_scope(self.config.model_name, initializer=self.config.initializer, reuse=tf.AUTO_REUSE):
+            x = self.image
+            self.add_summary('input_image', x, 'image')
+            x = self.base_func(x)
+            x = self.head_func(x)
+            return x
+
+    def loss_func(self):
         raise NotImplementedError('Model must have a loss function')
 
     def add_summary(self, name, value, summary_type='scalar'):
@@ -55,19 +64,18 @@ class BaseModel(object):
             raise Exception('Non valid summary type given')
         self.summaries.append(s)
 
-    @config_checker(['learning_rate', 'optimizer_type', 'model_name'])
-    def optimize_func(self, config=None):
+    def optimize_func(self):
         with tf.variable_scope('optimizer', reuse=tf.AUTO_REUSE):
-            if config.optimizer_type == 'rmsprop':
-                optimizer = tf.train.RMSPropOptimizer(config.learning_rate)
-            elif config.optimizer_type == 'sgd':
-                optimizer = tf.train.GradientDescentOptimizer(config.learning_rate)
-            elif config.optimizer_type == 'adam':
-                optimizer = tf.train.AdamOptimizer(config.learning_rate)
+            if self.config.optimizer_type == 'rmsprop':
+                optimizer = tf.train.RMSPropOptimizer(self.config.learning_rate)
+            elif self.config.optimizer_type == 'sgd':
+                optimizer = tf.train.GradientDescentOptimizer(self.config.learning_rate)
+            elif self.config.optimizer_type == 'adam':
+                optimizer = tf.train.AdamOptimizer(self.config.learning_rate)
             else:
-                raise Exception('Unkown optimizer type: %s' % config.optimizer_type)
+                raise Exception('Unkown optimizer type: %s' % self.config.optimizer_type)
             # Add mean and variance ops to dependencies so batch norm works during training
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope=config.model_name)
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope=self.config.model_name)
             with tf.control_dependencies(update_ops):
                 train_op = optimizer.minimize(self.loss)
         return train_op

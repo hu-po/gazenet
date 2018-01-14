@@ -22,24 +22,20 @@ class DiscriminatorModel(BaseModel):
         super().__init__(config=config)
         with self.graph.as_default():
             self.label = tf.placeholder(tf.uint8, shape=(None, 2), name='label')
-            self.build_graph(config=config)
+            self.build_graph()
 
-    @config_checker(['initializer',
-                     'model_name'])
-    def model_func(self, config=None):
-        with tf.variable_scope(config.model_name, initializer=config.initializer, reuse=tf.AUTO_REUSE):
-            x = self.image
-            self.add_summary('input_image', x, 'image')
-            # Model arch is a stack of conv blocks with residual connections, then a fully connected head
-            x = layers.resnet(x, self, config=config)
-            x = layers.dim_reductor(x, self, config=config)
-            x = layers.fc_head(x, self, config=config)
-            x = slim.fully_connected(x, 2, activation_fn=None)
-            x = slim.softmax(x, scope='output')
+    def model_base(self, x):
+        x = layers.resnet(x, self)
         return x
 
-    @config_checker()
-    def loss_func(self, config=None):
+    def model_head(self, x):
+        x = layers.dim_reductor(x, self)
+        x = layers.fc_head(x, self)
+        x = slim.fully_connected(x, 2, activation_fn=None)
+        x = slim.softmax(x, scope='output')
+        return x
+
+    def loss_func(self):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
             loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.label, logits=self.predict)
             self.add_summary('loss', loss, 'scalar')

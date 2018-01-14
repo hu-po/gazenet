@@ -22,21 +22,18 @@ class RefinerModel(BaseModel):
         super().__init__(config=config)
         with self.graph.as_default():
             self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
-            self.build_graph(config=config)
+            self.build_graph()
 
-    @config_checker(['image_channels',
-                                'model_name'])
-    def model_func(self, config=None):
-        with tf.variable_scope(config.model_name, initializer=config.initializer, reuse=tf.AUTO_REUSE):
-            x = self.image
-            self.add_summary('input_image', x, 'image')
-            x = layers.resnet(x, self, config=config)
-            x = slim.conv2d(x, config.image_channels, [1, 1], scope='final_refiner_conv')
-            self.add_summary('output_image', x, 'image')
+    def model_base(self, x):
+        x = layers.resnet(x, self)
         return x
 
-    @config_checker(['regularization_lambda'])
-    def loss_func(self, config=None):
+    def model_head(self, x):
+        x = slim.conv2d(x, self.config.image_channels, [1, 1], scope='final_refiner_conv')
+        self.add_summary('output_image', x, 'image')
+        return x
+
+    def loss_func(self):
         with tf.variable_scope('loss', reuse=tf.AUTO_REUSE):
             # All images are fake (synthetic), so labels are all 0
             labels = tf.zeros(shape=[tf.shape(self.label)[0]], dtype=tf.uint8)
@@ -46,7 +43,7 @@ class RefinerModel(BaseModel):
                                                         scope='loss_real')
             loss_reg = tf.losses.absolute_difference(predictions=self.image,
                                                      labels=self.predict,
-                                                     weights=config.regularization_lambda,
+                                                     weights=self.config.regularization_lambda,
                                                      scope='loss_reg')
             loss = tf.add(loss_real, loss_reg)
             self.add_summary('loss_real', loss_real, 'scalar')
