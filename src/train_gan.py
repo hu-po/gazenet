@@ -10,7 +10,7 @@ sys.path.append(mod_path)
 from src.config.config import config_checker
 from src.models.discrim_model import DiscriminatorModel
 from src.models.refiner_model import RefinerModel
-from src.config.gan_config import GANConfig
+from src.config.gan_train_config import GANConfig
 import src.utils.train_utils as train_utils
 
 '''

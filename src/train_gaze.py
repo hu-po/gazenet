@@ -10,7 +10,7 @@ sys.path.append(mod_path)
 
 from src.config.config import config_checker
 from src.models.gaze_model import GazeModel
-from src.config.gaze_config import GazeConfig
+from src.config.gaze_train_config import GazeConfig
 import src.utils.train_utils as train_utils
 
 '''

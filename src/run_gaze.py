@@ -1,14 +1,15 @@
 import os
-import time
+import sys
 import argparse
-import tensorflow as tf
 import multiprocessing as mp
+import tensorflow as tf
+import numpy as np
 import cv2
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-from src.config.config import Config
+import src.config.gaze_run_config as CONF
 from src.utils.cam_utils import WebcamVideoStream, FPS
 
 '''
@@ -20,27 +21,40 @@ Sources:
 '''
 
 
+def gaze_inference(image_np, sess, model_graph):
+    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+    image_np_expanded = np.expand_dims(image_np, axis=0)
+
+    # Get input and output to the gaze model
+    image_input = model_graph.get_tensor_by_name('input_image')
+    predict = model_graph.get_tensor_by_name('predict')
+
+    # Actual detection.
+    gaze_output = sess.run(predict, feed_dict={image_input: image_np_expanded})
+
+    # Visualization of the results of a detection.
+    cam_utils.visualize_gaze_output()
+    return image_np
+
+
 def worker(input_q, output_q):
     # Load a (frozen) Tensorflow model into memory.
-    detection_graph = tf.Graph()
-    with detection_graph.as_default():
+    model_graph = tf.Graph()
+    with model_graph.as_default():
         od_graph_def = tf.GraphDef()
-        with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+        with tf.gfile.GFile(CONF.PATH_TO_CKPT, 'rb') as fid:
             serialized_graph = fid.read()
             od_graph_def.ParseFromString(serialized_graph)
             tf.import_graph_def(od_graph_def, name='')
 
-        sess = tf.Session(graph=detection_graph)
+        sess = tf.Session(graph=model_graph)
 
     fps = FPS().start()
     while True:
         fps.update()
         frame = input_q.get()
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        output_q.put(detect_objects(frame_rgb, sess, detection_graph))
-
-    fps.stop()
-    sess.close()
+        output_q.put(gaze_inference(frame_rgb, sess, detection_graph))
 
 
 if __name__ == '__main__':
@@ -79,7 +93,8 @@ if __name__ == '__main__':
     fps.stop()
     print('[INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
     print('[INFO] approx. FPS: {:.2f}'.format(fps.fps()))
-    # Clean up threads, camera streams, etc
+    # Clean up threads, camera streams, tf session, etc
     pool.terminate()
     video_capture.stop()
     cv2.destroyAllWindows()
+    tf.reset_default_graph()
