@@ -1,14 +1,12 @@
 import os
 import sys
 import time
-import random
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-from src.config.config import config_checker
 from src.models.gaze_model import GazeModel
 from src.config.gaze_train_config import GazeConfig
 import src.utils.train_utils as train_utils
@@ -19,9 +17,6 @@ and decoding the data (should be in TFRecords format).
 '''
 
 
-@config_checker(['num_epochs',
-                 'max_loss',
-                 'best_loss'])
 def run_training(config=None):
     """
         Train gaze_trainer for the given number of steps.

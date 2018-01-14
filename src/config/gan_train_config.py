@@ -1,6 +1,12 @@
+import os
+import sys
 import tensorflow.contrib.slim as slim
+
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(mod_path)
+
 from src.config.config import Config
-import src.utils.data_utils as data_utils
+import src.utils.config_utils as config_util
 
 '''
 This file contains all the parameters for training the GAN component of this project. Each
@@ -12,53 +18,23 @@ GANConfig - Experiment
 
 
 class GANConfig(Config):
+    experiment_name = 'dualgan'
+
+    # Training parameters (from Algorithm 1 in [1])
+    num_training_steps = 5  # 100  # T
+    num_refiner_steps = 5  # 200  # Kg
+    num_discrim_steps = 5  # 50  # Kd
 
     def __init__(self):
-        self.experiment_name = 'dualgan'
-        self.build_experiment_config()
+        build_experiment_config()
 
         # Seperate dataset configs
-        self.real_dataset = RealConfig()
-        self.fake_dataset = FakeConfig()
+        real_dataset = RealConfig()
+        fake_dataset = FakeConfig()
 
         # Configs for both of the models
-        self.refiner_model = RefinerConfig(exp_config_handle=self)
-        self.discrim_model = DiscrimConfig(exp_config_handle=self)
-
-        # Training parameters (from Algorithm 1 in [1])
-        self.num_training_steps = 5  # 100  # T
-        self.num_refiner_steps = 5  # 200  # Kg
-        self.num_discrim_steps = 5  # 50  # Kd
-
-
-class FakeConfig(Config):
-
-    def __init__(self):
-        self.dataset_name = '04012018_headlook'
-        self.dataset_type = 'image'
-        self.dataset_len = 1000
-        self.tfrecord_name = 'image.tfrecords'
-        # Bigger buffer means better shuffling, but more memory used
-        self.buffer_size = 16
-        self.batch_size = 8
-        # Build the rest of the dataset related parameters
-        self.build_dataset_config()
-        # Create tf record dataset from data dir
-        data_utils.to_tfrecords(config=self)
-
-
-class RealConfig(Config):
-
-    def __init__(self):
-        self.dataset_name = '080118_real'
-        self.dataset_type = 'image'
-        self.dataset_len = 100
-        self.tfrecord_name = 'image.tfrecords'
-        self.buffer_size = 16
-        self.batch_size = 8
-        self.build_dataset_config()
-        # Create tf record dataset from data dir
-        data_utils.to_tfrecords(config=self)
+        refiner_model = RefinerConfig(exp_config_handle=self)
+        discrim_model = DiscrimConfig(exp_config_handle=self)
 
 
 class DiscrimConfig(Config):

@@ -1,6 +1,5 @@
 import os
 import sys
-import argparse
 import time
 import random
 import cv2
@@ -8,8 +7,8 @@ import cv2
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-import src.config.gaze_collect_config as CONF
-from src.utils.cam_utils import WebcamVideoStream, FPS
+from src.config.gaze_config import GazeCollectConfig
+from src.utils.cam_utils import WebcamVideoStream
 
 '''
 This python file collects unlabeled real gaze images using the webcamera.
@@ -18,38 +17,41 @@ Sources:
 [1] https://github.com/datitran/object_detector_app
 '''
 
+# Create config instance
+CONF = GazeCollectConfig()
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-src', '--source', dest='video_source', type=int,
-                        default=0, help='Device index of the camera.')
-    parser.add_argument('-wd', '--width', dest='width', type=int,
-                        default=480, help='Width of the frames in the video stream.')
-    parser.add_argument('-ht', '--height', dest='height', type=int,
-                        default=360, help='Height of the frames in the video stream.')
-    args = parser.parse_args()
+
 
     # Create local data dir
     dataset_dir = os.path.join(CONF.data_dir, CONF.dataset_name)
 
     # Start up webcam stream
-    video_capture = WebcamVideoStream(src=args.video_source, width=args.width, height=args.height).start()
+    video_capture = WebcamVideoStream(src=CONF.video_source, width=CONF.width, height=CONF.height).start()
 
     # Counter variable
     count = 1
     while True:
-        frame = video_capture.read()
 
-        print('Taking image %s ' % count)
+        # Pick a random gaze location
+        gaze_x = random.uniform(0, 1)
+        gaze_y = random.uniform(0, 1)
 
-        # Countdown on target gaze location
+        # Plot gaze location onto screen
+
+        # Plot countdown
         time.sleep(1)
 
+        print('Taking image %s ' % count)
+        frame = video_capture.read()
+
+        # Plot recorded image and gaze location
+        cv2.imshow('Video', frame)
+
         # Save image
-        filename = '%s.png' % i
+        filename = '%.2f_%.2f.png' % (gaze_x, gaze_y)
         cv2.imwrite(os.path.join(dataset_dir, filename), frame)
         count += 1
-
-        cv2.imshow('Video', frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

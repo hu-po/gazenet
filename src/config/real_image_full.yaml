@@ -1,0 +1,9 @@
+dataset_name : '080118_real'
+dataset_type : 'image'
+tfrecord_name : 'real_image.tfrecords'
+full_dataset: True
+shuffle : True
+buffer_size : 32
+batch_size : 16
+# Image augmentation when training
+image_augmentation : False
