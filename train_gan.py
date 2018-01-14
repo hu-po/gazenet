@@ -7,7 +7,7 @@ import tensorflow as tf
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-from src.config.config import config_checker
+from src.grandpa import config_checker
 from src.models.discrim_model import DiscriminatorModel
 from src.models.refiner_model import RefinerModel
 from src.config.gan_train_config import GANConfig

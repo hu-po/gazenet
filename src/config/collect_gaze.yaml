@@ -1,0 +1,4 @@
+# Device index of camera
+video_source : 0
+# Name of the dataset to collect
+dataset_name : '080118_real'

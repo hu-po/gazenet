@@ -1,0 +1,10 @@
+# Experiment name is the root directory for logs
+experiment_name : 'dualgan'
+# Training parameters (from Algorithm 1 in [1])
+num_training_steps : 5  # 100  # T
+num_refiner_steps : 5  # 200  # Kg
+num_discrim_steps : 5  # 50  # Kd
+# Early stopping
+max_loss : 100
+best_loss : 100
+patience : 3

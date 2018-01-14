@@ -1,0 +1,12 @@
+# Experiment name is the root directory for logs
+experiment_name : 'gazedongal'
+# Training parameters
+num_epochs : 30
+# Early stopping
+max_loss : 100
+best_loss : 100
+patience : 3
+
+
+
+
