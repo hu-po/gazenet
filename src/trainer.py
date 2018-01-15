@@ -8,10 +8,10 @@ from collections import OrderedDict
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-from src.config.config import RootConfig
+from src.config.config import Config
 
 
-class Trainer(RootConfig):
+class Trainer(Config):
 
     def build_hyperparameter_config(config, exp_config_handle=None):
         # Runs are required when configs contain hyperparameters
