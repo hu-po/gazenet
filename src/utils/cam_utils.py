@@ -81,7 +81,7 @@ class WebcamVideoStream:
         self.stopped = True
 
 
-def screen_plot(gaze_loc, image=None, radius=20):
+def screen_plot(gaze_loc, image=None, extra_text='.', window_name='.'):
     # Get monitor size using screeninfo pkg
     screen = screeninfo.get_monitors()[0]
 
@@ -91,23 +91,24 @@ def screen_plot(gaze_loc, image=None, radius=20):
     # Plot image on center of canvas
     if image is not None:
         image = image / 255
-        image_loc = [int(0.5 * screen.width - image.shape[0] / 2),
-                     int(0.5 * screen.height - image.shape[1] / 2)]
+        image_loc = [int(0.5 * screen.height - image.shape[0] / 2),
+                     int(0.5 * screen.width - image.shape[1] / 2)]
         canvas[image_loc[0]:image_loc[0] + image.shape[0], image_loc[1]:image_loc[1] + image.shape[1]] = image
 
     # Plot gaze location
-    x = int(gaze_loc[0] * screen.width)
-    y = int(screen.height - gaze_loc[1] * screen.height)
-    cv2.circle(canvas, (x, y), radius, (0, 255, 0), -1)
+    gaze_x = int(screen.width - gaze_loc[0] * screen.width)
+    gaze_y = int(screen.height - gaze_loc[1] * screen.height)
+    cv2.circle(canvas, (gaze_x, gaze_y), 20, (0, 255, 0), -1)
 
     # Plot information as text below
-    text = 'Gaze location, %s x width   %s y height' % (gaze_loc[0], gaze_loc[1])
-    text_loc = (int(0.8 * screen.height), int(0.5 * screen.width))
-    cv2.putText(canvas, text, text_loc, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
+    text = 'Gaze Location (%.2f , %.2f) \n %s' % (gaze_loc[0], gaze_loc[1], extra_text)
+    text_x = int(0.4 * screen.width)
+    text_y = int(0.7 * screen.height)
+    cv2.putText(canvas, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
 
-    window_name = 'GazeTracker'
+    # Create named window and center & fullscreen it
     cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
     cv2.moveWindow(window_name, screen.x - 1, screen.y - 1)
     cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-    return window_name, canvas
+    return canvas

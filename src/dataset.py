@@ -10,10 +10,10 @@ import yaml
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-from src.grandpa import Grandpa
+from src.config.config import RootConfig
 
 
-class Dataset(Grandpa):
+class Dataset(RootConfig):
 
     def __init__(self, config=None):
         assert config is not None, 'Please provide a yaml config file for the dataset'

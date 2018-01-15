@@ -4,3 +4,5 @@ video_source : 0
 num_workers : 2
 # Size of the image queue
 queue_size : 5
+# Name of opencv window
+window_name : "Gaze Collection"
