@@ -6,6 +6,7 @@ mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
 import src.models.layers as layers
+from src.config.config import Config
 
 '''
 Base model class is inherited to re-use some common code
@@ -15,8 +16,9 @@ Base model class is inherited to re-use some common code
 class Model(object):
 
     def __init__(self, config=None):
+        assert config is not None, 'Please provide a yaml config file for the dataset'
+        self.config = Config.from_yaml(config)
         self.graph = tf.Graph()
-        self.config = config
         self.saver = None
         with self.graph.as_default():
             # All models in this repo have image input and labels

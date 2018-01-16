@@ -43,30 +43,6 @@ class Dataset(object):
             iterator = dataset.make_initializable_iterator()
         return iterator, iterator.get_next()
 
-    def mixed_image_batch(self):
-        # Placeholders for mixed batch
-        real_images = tf.placeholder(tf.float32, shape=(None,
-                                                        self.config.image_height,
-                                                        self.config.image_width,
-                                                        self.config.image_channels),
-                                     name='real_images')
-        refined_images = tf.placeholder(tf.float32, shape=(None,
-                                                           self.config.image_height,
-                                                           self.config.image_width,
-                                                           self.config.image_channels),
-                                        name='refined_images')
-        # Combine together refined synthetic and real images in batch
-        combined_images = tf.concat([real_images, refined_images], axis=0)
-        # Create label vectors of same length as image batches (0=fake, 1=real)
-        real_labels = tf.one_hot(tf.ones(shape=[tf.shape(real_images)[0]], dtype=tf.uint8), 2)
-        fake_labels = tf.one_hot(tf.zeros(shape=[tf.shape(refined_images)[0]], dtype=tf.uint8), 2)
-        combined_labels = tf.concat([real_labels, fake_labels], axis=0)
-        # Make sure to shuffle the images and labels with the same seed
-        seed = 1
-        shuffled_images = tf.random_shuffle(combined_images, seed=seed)
-        shuffled_labels = tf.random_shuffle(combined_labels, seed=seed)
-        return real_images, refined_images, [shuffled_images, shuffled_labels]
-
     def _to_tfrecords(self):
         image_paths = glob.glob(os.path.join(self.dataset_path, '*.png'))
         print('There are %d images in %s' % (len(image_paths), self.config.dataset_name))
