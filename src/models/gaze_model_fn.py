@@ -7,6 +7,7 @@ sys.path.append(mod_path)
 
 import src.models.layers as layers
 
+
 def model_fn(features, labels, mode, params):
     """Model function for Estimator."""
 

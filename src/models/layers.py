@@ -4,34 +4,35 @@ import tensorflow as tf
 def fc_head(input, params):
     x = input
     for i in range(len(params['fc_layers'])):
-        x = slim.fully_connected(x, model.config.fc_layers[i])
-        x = slim.dropout(x, model.config.dropout_keep_prob, is_training=model.is_training)
+        x = tf.layers.dense(x, params['fc_layers'][i])
+        x = tf.layers.dropout(x, params['dropout_keep_prob'], training=params['is_training'])
     return x
 
 
 def dim_reductor(input, params):
-    x = tf.layers.conv2d(input, model.config.dimred_feat, model.config.dimred_kernel, stride=model.config.dimred_stride)
-    if model.config.batch_norm:
-        x = tf.layers.batch_normalization(x, training=model.is_training)
+    x = tf.layers.conv2d(input, params['dimred_feat'], params['dimred_kernel'], strides=params['dimred_stride'])
+    if params['batch_norm']:
+        x = tf.layers.batch_normalization(x, training=params['is_training'])
     x = tf.layers.flatten(x)
-    x = tf.layers.dropout(x, model.config.dropout_keep_prob, training=model.is_training)
+    x = tf.layers.dropout(x, params['dropout_keep_prob'], training=params['is_training'])
     return x
 
 
 def resnet_block(input, params):
-    x = slim.conv2d(input, model.config.rb_feat, model.config.rb_kernel, padding='same')
-    if model.config.batch_norm:
-        x = tf.layers.batch_normalization(x, training=model.is_training)
+    x = tf.layers.conv2d(input, params['rb_feat'], params['rb_kernel'], padding='same')
+    if params['batch_norm']:
+        x = tf.layers.batch_normalization(x, training=params['is_training'])
     x = tf.concat([x, input], axis=3)
     return x
 
 
-def resnet(input, model):
+def resnet(input, params):
     with tf.variable_scope('resnet'):
         x = input
-        for _ in range(model.config.num_rb):
-            x = resnet_block(x, model)
+        for _ in range(params['num_rb']):
+            x = resnet_block(x, params)
     return x
+
 
 def optimize(loss, params):
     if params['optimizer_type'] == 'rmsprop':

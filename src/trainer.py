@@ -14,6 +14,35 @@ from src.config.config import Config
 
 class Trainer(Config):
 
+    @classmethod
+    def from_config(cls):
+
+        # Set model params
+        model_params = {"learning_rate": LEARNING_RATE}
+
+        # Instantiate Estimator
+        nn = tf.estimator.Estimator(model_fn=model_fn, params=model_params)
+
+        train_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x={"x": np.array(training_set.data)},
+            y=np.array(training_set.target),
+            num_epochs=None,
+            shuffle=True)
+
+        # Train
+        nn.train(input_fn=train_input_fn, steps=5000)
+
+        # Score accuracy
+        test_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x={"x": np.array(test_set.data)},
+            y=np.array(test_set.target),
+            num_epochs=1,
+            shuffle=False)
+
+        ev = nn.evaluate(input_fn=test_input_fn)
+        print("Loss: %s" % ev["loss"])
+        print("Root Mean Squared Error: %s" % ev["rmse"])
+
     def mixed_image_batch(self):
         # Placeholders for mixed batch
         real_images = tf.placeholder(tf.float32, shape=(None,
