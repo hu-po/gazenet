@@ -1,11 +1,30 @@
 # Experiment name is the root directory for logs
-experiment_name : 'gazedongal'
+experiment_name : 'estimator_gaze'
 # Training parameters
 num_epochs : 30
 # Early stopping
 max_loss : 100
 best_loss : 100
 patience : 3
+# Model parameters
+model_func: 'resnet_gaze_model_fn'
+model_params:
+  model_name : 'gaze_resnet'
+  # Optimization parameters
+  optimizer_type : 'adam'
+  learning_rate : 0.001
+  # Model parameters - Resnet Base
+  num_rb : 2
+  rb_feat : 16
+  rb_kernel : 3
+  batch_norm : True
+  # Model parameters - FC Head
+  fc_layers : [128, 128, 64]
+  dimred_feat : 32
+  dimred_kernel : 4
+  dimred_stride : 2
+  dropout_keep_prob: 0.6
+
 
 
 

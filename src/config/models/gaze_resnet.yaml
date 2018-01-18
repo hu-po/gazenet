@@ -1,3 +1,14 @@
 model_name : 'gaze_resnet'
-model_head : 'head_gazenet.yaml'
-model_base : 'base_resnet.yaml'
+# Optimization parameters
+optimizer_type : 'adam'
+learning_rate : 0.001
+# Model parameters - Resnet Base
+num_rb : 2
+rb_feat : 16
+rb_kernel : 3
+batch_norm : True
+# Model parameters - FC Head
+fc_layers : [128, 128, 64]
+dimred_feat : 32
+dimred_kernel : 4
+dimred_stride : 2

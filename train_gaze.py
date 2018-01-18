@@ -7,7 +7,7 @@ mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
 from src.config.config import Config
-from src.models.model import Model
+import src.models.model_func_bank as model_func_bank
 from src.dataset import Dataset
 
 '''
@@ -111,20 +111,16 @@ if __name__ == '__main__':
     train_dataset = Dataset.from_yaml('datasets/synthetic_gaze_train_small.yaml')
     test_dataset = Dataset.from_yaml('datasets/synthetic_gaze_test.yaml')
 
-    # Create model object
-    model = Model(config='models/gaze_resnet.yaml')
 
+    # Instantiate Estimator
+    nn = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
+                                params=config.model_params,
+                                model_dir=config.model_dir)
 
-    for i in range(model.num_runs):
-        model.prepare_run(i)
+    # Train for one Epoch
+    nn.train(input_fn=train_dataset.input_feed)
 
-        # Instantiate Estimator
-        nn = tf.estimator.Estimator(model_fn=model.model_fn, params=model.params)
-
-        # Train
-        nn.train(input_fn=train_dataset.input_feed, steps=5000)
-
-        # Test
-        ev = nn.evaluate(input_fn=test_dataset.input_feed)
-        print("Loss: %s" % ev["loss"])
-        print("Root Mean Squared Error: %s" % ev["rmse"])
+    # Test
+    ev = nn.evaluate(input_fn=test_dataset.input_feed)
+    print("Loss: %s" % ev["loss"])
+    print("Root Mean Squared Error: %s" % ev["rmse"])

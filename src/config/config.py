@@ -18,6 +18,7 @@ class Config(object):
     image_width = 128
     image_height = 96
     image_channels = 1
+    grayscale = True
 
     @classmethod
     def from_yaml(cls, yaml_name):
