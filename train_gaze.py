@@ -107,12 +107,9 @@ if __name__ == '__main__':
     # Create config and convert dataset to usable form
     config = Config.from_yaml('run/gaze_train.yaml')
 
-    # Create dataset objects for test and train
-    train_dataset = Dataset.from_yaml('datasets/synthetic_gaze_train_small.yaml')
-    test_dataset = Dataset.from_yaml('datasets/synthetic_gaze_test.yaml')
-
-    train_input_feed, train_init_op = train_dataset.input_feed()
-    test_input_feed, test_init_op = test_dataset.input_feed()
+    # Get the input feed tensors and initializer hooks for the datasets
+    train_input_func, train_init_hook = Dataset.from_yaml('datasets/synthetic_gaze_train_small.yaml').input_feed()
+    test_input_func, test_init_hook = Dataset.from_yaml('datasets/synthetic_gaze_test.yaml').input_feed()
 
     # Instantiate Estimator
     nn = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
@@ -124,16 +121,13 @@ if __name__ == '__main__':
                       "output": "output"}
     logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=50)
 
-    # Initializer hooks for input ops
-    train_init_hook = train_utils.IteratorInitializerHook(train_init_op)
-    test_init_hook = train_utils.IteratorInitializerHook(test_init_op)
 
     # Train for one Epoch
-    nn.train(input_fn=train_dataset.input_feed,
+    nn.train(input_fn=train_input_func,
              hooks=[train_init_hook, logging_hook])
 
     # Test
-    ev = nn.evaluate(input_fn=test_dataset.input_feed,
+    ev = nn.evaluate(input_fn=test_input_func,
                      hooks=[test_init_hook, logging_hook])
     print("Loss: %s" % ev["loss"])
     print("Root Mean Squared Error: %s" % ev["rmse"])

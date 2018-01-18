@@ -10,6 +10,8 @@ mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
 from src.config.config import Config
+import src.utils.train_utils as train_utils
+
 
 
 class Dataset(object):
@@ -50,7 +52,12 @@ class Dataset(object):
                 dataset = dataset.shuffle(self.config.buffer_size)
             dataset = dataset.batch(self.config.batch_size)
             iterator = dataset.make_initializable_iterator()
-        return iterator.get_next(), iterator
+            # Create initializer hook
+            init_hook = train_utils.IteratorInitializerHook(iterator)
+            # Create function that returns iterator op
+            def input_func():
+                return iterator.get_next()
+        return input_func, init_hook
 
     def _to_tfrecords(self):
         image_paths = glob.glob(os.path.join(self.dataset_path, '*.png'))
