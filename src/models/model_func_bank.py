@@ -31,8 +31,8 @@ def resnet_gaze_model_fn(features, labels, mode, params):
 
     with tf.name_scope(params['model_name']):
         # Build model using layers defined in layers file
-        x = features
-        x = layers.resnet(x, params)
+        input_image = features
+        x = layers.resnet(input_image, params)
         x = layers.dim_reductor(x, params)
         x = layers.fc_head(x, params)
 

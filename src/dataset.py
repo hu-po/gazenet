@@ -50,7 +50,7 @@ class Dataset(object):
                 dataset = dataset.shuffle(self.config.buffer_size)
             dataset = dataset.batch(self.config.batch_size)
             iterator = dataset.make_initializable_iterator()
-        return iterator.get_next()
+        return iterator.get_next(), iterator
 
     def _to_tfrecords(self):
         image_paths = glob.glob(os.path.join(self.dataset_path, '*.png'))

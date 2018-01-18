@@ -9,6 +9,7 @@ sys.path.append(mod_path)
 from src.config.config import Config
 import src.models.model_func_bank as model_func_bank
 from src.dataset import Dataset
+import src.utils.train_utils as train_utils
 
 '''
 This file is used to train the gaze net. It contains functions for reading
@@ -103,7 +104,6 @@ def run_training(config=None):
 
 
 if __name__ == '__main__':
-
     # Create config and convert dataset to usable form
     config = Config.from_yaml('run/gaze_train.yaml')
 
@@ -111,16 +111,29 @@ if __name__ == '__main__':
     train_dataset = Dataset.from_yaml('datasets/synthetic_gaze_train_small.yaml')
     test_dataset = Dataset.from_yaml('datasets/synthetic_gaze_test.yaml')
 
+    train_input_feed, train_init_op = train_dataset.input_feed()
+    test_input_feed, test_init_op = test_dataset.input_feed()
 
     # Instantiate Estimator
     nn = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
                                 params=config.model_params,
                                 model_dir=config.model_dir)
 
+    # Logging hook
+    tensors_to_log = {"input_image": "input_image",
+                      "output": "output"}
+    logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=50)
+
+    # Initializer hooks for input ops
+    train_init_hook = train_utils.IteratorInitializerHook(train_init_op)
+    test_init_hook = train_utils.IteratorInitializerHook(test_init_op)
+
     # Train for one Epoch
-    nn.train(input_fn=train_dataset.input_feed)
+    nn.train(input_fn=train_dataset.input_feed,
+             hooks=[train_init_hook, logging_hook])
 
     # Test
-    ev = nn.evaluate(input_fn=test_dataset.input_feed)
+    ev = nn.evaluate(input_fn=test_dataset.input_feed,
+                     hooks=[test_init_hook, logging_hook])
     print("Loss: %s" % ev["loss"])
     print("Root Mean Squared Error: %s" % ev["rmse"])
