@@ -115,9 +115,8 @@ if __name__ == '__main__':
     model = Model(config='models/gaze_resnet.yaml')
 
 
-    # Run training for every 'run' (different permutations of hyperparameters)
-    for i in range(config.gaze_model.num_runs):
-        config.gaze_model.prepare_run(i)
+    for i in range(model.num_runs):
+        model.prepare_run(i)
 
         # Instantiate Estimator
         nn = tf.estimator.Estimator(model_fn=model.model_fn, params=model.params)

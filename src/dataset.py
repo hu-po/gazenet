@@ -3,7 +3,7 @@ import sys
 import glob
 import re
 import tensorflow as tf
-import PIL as Image
+import PIL.Image
 import numpy as np
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -61,7 +61,7 @@ class Dataset(object):
 
     def _imagepath_to_string(self, image_path):
         # Get image and label from image path
-        image_raw = Image.open(image_path)
+        image_raw = PIL.Image.open(image_path)
         image_resized = image_raw.resize((self.config.image_width, self.config.image_height))
         img = np.array(image_resized)
         # Sometimes images have an extra 4th alpha channel
