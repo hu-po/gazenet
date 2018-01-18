@@ -1,9 +1,0 @@
-model_name : 'discrim'
-initializer : 'xavier'
-optimizer_type : 'adam'
-hyperparams:
-  learning_rate : [0.01, 0.005, 0.001]
-  fc_layers : [[128, 128, 64], [256, 32], [64, 64], [256, 64], [128, 32]]
-  dimred_feat : [32, 64, 128]
-  dimred_kernel : [4, 6, 8]
-  dimred_stride : [2, 4]

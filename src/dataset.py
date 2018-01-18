@@ -14,9 +14,18 @@ from src.config.config import Config
 
 class Dataset(object):
 
-    def __init__(self, config=None):
+    @classmethod
+    def from_yaml(cls, config):
         assert config is not None, 'Please provide a yaml config file for the dataset'
-        self.config = Config.from_yaml(config)
+        cls.config = Config.from_yaml(config)
+        assert cls.config.dataset_type in ['gaze', 'image'], 'Config dataset type unknown or missing'
+        if cls.config.dataset_type == 'gaze':
+            return GazeDataset()
+        if cls.config.dataset_type == 'image':
+            return ImageDataset()
+        return cls
+
+    def __init__(self):
         self.dataset_path = os.path.join(self.config.data_dir, self.config.dataset_name)
         if not os.path.exists(self.dataset_path):
             raise Exception('Dataset not found in path')

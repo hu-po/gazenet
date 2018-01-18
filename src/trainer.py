@@ -19,6 +19,7 @@ class Trainer(Config):
     @classmethod
     def from_config(cls):
 
+
         # Create dataset objects for test and train
         train_dataset = GazeDataset(config='datasets/synthetic_gaze_train_small.yaml')
         test_dataset = GazeDataset(config='datasets/synthetic_gaze_test.yaml')
@@ -65,10 +66,10 @@ class Trainer(Config):
         # Runs are required when configs contain hyperparameters
         config.run_log_path = None
         config.run_checkpoint_path = None
-        # List of all runs within trainers
+        # List of all runs within run
         config.runs = []
         if exp_config_handle is not None:
-            # Take log and checkpoint paths from trainers
+            # Take log and checkpoint paths from run
             config.log_path = exp_config_handle.log_path
             config.checkpoint_path = exp_config_handle.checkpoint_path
 
@@ -119,10 +120,10 @@ class Trainer(Config):
     def build_experiment_config(config):
         d = datetime.datetime.today()
         experiment_name = '%s_%sm_%sd_%shr_%smin' % (config.experiment_name, d.month, d.day, d.hour, d.minute)
-        # Create trainers specific log and checkpoint directories
+        # Create run specific log and checkpoint directories
         config.log_path = os.path.join(config.log_dir, experiment_name)
         config.checkpoint_path = os.path.join(config.model_dir, experiment_name)
         make_path(config.log_path)
         make_path(config.checkpoint_path)
-        print('Created log and checkpoint directories for trainers %s' % experiment_name)
+        print('Created log and checkpoint directories for run %s' % experiment_name)
 

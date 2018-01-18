@@ -2,14 +2,13 @@ import os
 import sys
 import time
 import tensorflow as tf
-from tensorflow.python import debug as tf_debug
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-from src.models.gaze_model import GazeModel
-from src.config.gaze_train_config import GazeConfig
-import src.utils.train_utils as train_utils
+from src.config.config import Config
+from src.models.model import Model
+from src.dataset import Dataset
 
 '''
 This file is used to train the gaze net. It contains functions for reading
@@ -103,20 +102,30 @@ def run_training(config=None):
     tf.reset_default_graph()
 
 
-def main():
+if __name__ == '__main__':
+
     # Create config and convert dataset to usable form
-    config = GazeConfig()
+    config = Config.from_yaml('run/gaze_train.yaml')
+
+    # Create dataset objects for test and train
+    train_dataset = Dataset.from_yaml('datasets/synthetic_gaze_train_small.yaml')
+    test_dataset = Dataset.from_yaml('datasets/synthetic_gaze_test.yaml')
+
+    # Create model object
+    model = Model(config='models/gaze_resnet.yaml')
+
+
     # Run training for every 'run' (different permutations of hyperparameters)
     for i in range(config.gaze_model.num_runs):
         config.gaze_model.prepare_run(i)
-        run_training(config=config)
-        # try:
-        #     config.prepare_run(i)
-        #     run_training(config=config)
-        # except Exception as e:  # If something wierd happens because of the particular hyperparameters
-        #     # Clear the graph just in case there is lingering stuff
-        #     tf.reset_default_graph()
 
+        # Instantiate Estimator
+        nn = tf.estimator.Estimator(model_fn=model.model_fn, params=model.params)
 
-if __name__ == '__main__':
-    main()
+        # Train
+        nn.train(input_fn=train_dataset.input_feed, steps=5000)
+
+        # Test
+        ev = nn.evaluate(input_fn=test_dataset.input_feed)
+        print("Loss: %s" % ev["loss"])
+        print("Root Mean Squared Error: %s" % ev["rmse"])

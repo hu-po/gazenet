@@ -1,0 +1,3 @@
+model_name : 'gaze_resnet'
+model_head : 'head_gazenet.yaml'
+model_base : 'base_resnet.yaml'
