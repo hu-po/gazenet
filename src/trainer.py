@@ -3,6 +3,7 @@ import sys
 import datetime
 import random
 import itertools
+import numpy as np
 from collections import OrderedDict
 import tensorflow as tf
 
@@ -10,6 +11,7 @@ mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
 from src.config.config import Config
+from src.dataset import GazeDataset
 
 
 class Trainer(Config):
@@ -17,29 +19,21 @@ class Trainer(Config):
     @classmethod
     def from_config(cls):
 
+        # Create dataset objects for test and train
+        train_dataset = GazeDataset(config='datasets/synthetic_gaze_train_small.yaml')
+        test_dataset = GazeDataset(config='datasets/synthetic_gaze_test.yaml')
+
         # Set model params
         model_params = {"learning_rate": LEARNING_RATE}
 
         # Instantiate Estimator
         nn = tf.estimator.Estimator(model_fn=model_fn, params=model_params)
 
-        train_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x={"x": np.array(training_set.data)},
-            y=np.array(training_set.target),
-            num_epochs=None,
-            shuffle=True)
-
         # Train
-        nn.train(input_fn=train_input_fn, steps=5000)
+        nn.train(input_fn=train_dataset.input_feed, steps=5000)
 
-        # Score accuracy
-        test_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x={"x": np.array(test_set.data)},
-            y=np.array(test_set.target),
-            num_epochs=1,
-            shuffle=False)
-
-        ev = nn.evaluate(input_fn=test_input_fn)
+        # Test
+        ev = nn.evaluate(input_fn=test_dataset.input_feed)
         print("Loss: %s" % ev["loss"])
         print("Root Mean Squared Error: %s" % ev["rmse"])
 
