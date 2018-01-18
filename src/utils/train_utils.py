@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 class IteratorInitializerHook(tf.train.SessionRunHook):
-    def __init__(self, init_op):
+    def __init__(self, init_op=None):
         super().__init__()
         self.init_op = init_op
 

@@ -18,6 +18,7 @@ class Config(object):
     image_width = 128
     image_height = 96
     image_channels = 1
+    image_channels_input = 3  # Number of channels for raw input images
     grayscale = True
 
     @classmethod
@@ -35,6 +36,3 @@ class Config(object):
             for key, value in params.items():
                 setattr(cls, key, value)
         return cls
-
-
-
