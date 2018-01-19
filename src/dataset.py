@@ -55,7 +55,8 @@ class Dataset(object):
                 if self.config.shuffle:
                     dataset = dataset.shuffle(self.config.buffer_size)
                 dataset = dataset.batch(self.config.batch_size)
-                iterator = dataset.make_initializable_iterator()
+                # iterator = dataset.make_initializable_iterator()
+                iterator = dataset.make_one_shot_iterator()
                 nonlocal init_hook
                 init_hook.iterator = iterator
             return iterator.get_next()

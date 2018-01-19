@@ -9,6 +9,7 @@ sys.path.append(mod_path)
 from src.config.config import Config
 import src.models.model_func_bank as model_func_bank
 from src.dataset import Dataset
+import src.utils.train_utils as train_utils
 
 '''
 This file is used to train the gaze net. It contains functions for reading
@@ -35,40 +36,52 @@ def run_training(config=None):
     nn = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
                                 params=config.model_params,
                                 config=runconfig)
-    # Early stopping params
-    best_loss = config.best_loss
-    steps_since_loss_decrease = -1
-    # Loop train and testing for configured number of epochs
-    for epoch_idx in range(config.num_epochs):
-        # Training
-        train_start = time.time()
-        # Train for one Epoch
-        nn.train(input_fn=train_input_feed, hooks=[train_init_hook])
-        train_duration = time.time() - train_start
-        # Testing (one single batch is run)
-        test_start = time.time()
-        ev = nn.evaluate(input_fn=test_input_feed, hooks=[test_init_hook])
-        loss = ev['loss']
-        rmse = ev['rmse']
-        test_duration = time.time() - test_start
-        print('Epoch %d: Training (%.3f sec) Testing (%.3f sec) - loss: %.2f - rmse: %.2f' % (epoch_idx,
-                                                                                              train_duration,
-                                                                                              test_duration,
-                                                                                              loss,
-                                                                                              rmse))
-        # Early stopping breaks out if loss hasn't decreased in N steps
-        if best_loss < loss:
-            steps_since_loss_decrease += 1
-        if loss < best_loss:
-            best_loss = loss
-            steps_since_loss_decrease = 0
-        if steps_since_loss_decrease >= config.patience:
-            print('Loss no longer decreasing, ending run')
-            break
-        # End early if the loss is way out of wack
-        if loss > config.max_loss:
-            print('Loss is too big off the bat, ending run')
-            break
+
+    # Create hooks
+    early_stop_hook = train_utils.EarlyStoppingHook(config=config)
+
+    # Train and Test specs
+    train_spec = tf.estimator.TrainSpec(input_fn=train_input_feed)
+    eval_spec = tf.estimator.EvalSpec(input_fn=test_input_feed, hooks=[early_stop_hook])
+
+    tf.estimator.train_and_evaluate(estimator=nn,
+                                    train_spec=train_spec,
+                                    eval_spec=eval_spec)
+
+    # # Early stopping params
+    # best_loss = config.best_loss
+    # steps_since_loss_decrease = -1
+    # # Loop train and testing for configured number of epochs
+    # for epoch_idx in range(config.num_epochs):
+    #     # Training
+    #     train_start = time.time()
+    #     # Train for one Epoch
+    #     nn.train(input_fn=train_input_feed)#, hooks=[train_init_hook])
+    #     train_duration = time.time() - train_start
+    #     # Testing (one single batch is run)
+    #     test_start = time.time()
+    #     ev = nn.evaluate(input_fn=test_input_feed)#, hooks=[test_init_hook])
+    #     loss = ev['loss']
+    #     rmse = ev['rmse']
+    #     test_duration = time.time() - test_start
+    #     print('Epoch %d: Training (%.3f sec) Testing (%.3f sec) - loss: %.2f - rmse: %.2f' % (epoch_idx,
+    #                                                                                           train_duration,
+    #                                                                                           test_duration,
+    #                                                                                           loss,
+    #                                                                                           rmse))
+    #     # Early stopping breaks out if loss hasn't decreased in N steps
+    #     if best_loss < loss:
+    #         steps_since_loss_decrease += 1
+    #     if loss < best_loss:
+    #         best_loss = loss
+    #         steps_since_loss_decrease = 0
+    #     if steps_since_loss_decrease >= config.patience:
+    #         print('Loss no longer decreasing, ending run')
+    #         break
+    #     # End early if the loss is way out of wack
+    #     if loss > config.max_loss:
+    #         print('Loss is too big off the bat, ending run')
+    #         break
 
 
 if __name__ == '__main__':
