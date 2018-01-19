@@ -32,12 +32,14 @@ def resnet_gaze_model_fn(features, labels, mode, params):
     with tf.name_scope(params['model_name']):
         # Build model using layers defined in layers file
         input_image = features
+        tf.summary.image('input_image', input_image)
         x = layers.resnet(input_image, params)
         x = layers.dim_reductor(x, params)
         x = layers.fc_head(x, params)
 
         # Final layer for regression has no activation function
         output = tf.layers.dense(x, 2, activation=None, name='output')
+
 
     # Provide an estimator spec for `ModeKeys.PREDICT`.
     if mode == tf.estimator.ModeKeys.PREDICT:

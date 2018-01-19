@@ -25,13 +25,16 @@ def run_training(config=None):
     # Get hooks and feed functions for train and test datasets
     train_input_feed, train_init_hook = Dataset.from_yaml(config.train_dataset_yaml).feed_and_hook()
     test_input_feed, test_init_hook = Dataset.from_yaml(config.test_dataset_yaml).feed_and_hook()
+    # Set up run config
+    runconfig = tf.estimator.RunConfig(model_dir=config.model_dir,
+                                       save_summary_steps=config.save_summary_steps,
+                                       save_checkpoints_steps=config.save_checkpoints_steps,
+                                       keep_checkpoint_max=1)
+
     # Instantiate Estimator
     nn = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
                                 params=config.model_params,
-                                model_dir=config.model_dir)
-    tf.train.SummarySaverHook(output_dir=config.log_dir,
-                              summary_op=model.summary_op)
-
+                                config=runconfig)
     # Early stopping params
     best_loss = config.best_loss
     steps_since_loss_decrease = -1

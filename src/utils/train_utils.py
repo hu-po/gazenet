@@ -2,12 +2,15 @@ import tensorflow as tf
 
 
 class IteratorInitializerHook(tf.train.SessionRunHook):
-    def __init__(self, init_op=None):
+    def __init__(self, iterator=None):
         super().__init__()
-        self.init_op = init_op
+        self.iterator = iterator
 
     def after_create_session(self, session, coord):
-        session.run(self.init_op)
+        session.run(self.iterator.initializer)
+
+    # def before_run(self, run_context):
+    #     return self.iterator.get_next()
 
 
 class EarlyStoppingHook(tf.train.SessionRunHook):

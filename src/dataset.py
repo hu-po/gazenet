@@ -57,7 +57,7 @@ class Dataset(object):
                 dataset = dataset.batch(self.config.batch_size)
                 iterator = dataset.make_initializable_iterator()
                 nonlocal init_hook
-                init_hook.init_op = iterator.initializer
+                init_hook.iterator = iterator
             return iterator.get_next()
 
         return input_feed, init_hook
