@@ -24,20 +24,14 @@ class Model(Config):
 
     def next_run(self):
         permutation = self.runs[self.run_idx]
-        run_specific_name = self.model_name
         for i, key in enumerate(self.hyperparams.keys()):
             # Change the hyperparam class property
             value = self.hyperparams[key][permutation[i]]
             setattr(self, key, value)
-            # Add the hyperparam to the run_specifc name
-            str_value = str(value)
-            if isinstance(value, list):
-                str_value = '_'.join(str(a) for a in value)
-            run_specific_name += '_%s_%s' % (key, str_value)
         self.run_idx += 1
-        return run_specific_name
+        return self.model_param_dict()
 
-    def build_model_params(self):
+    def model_param_dict(self):
         model_params = {}
         for param_name in self.model_params:
             value = getattr(self, param_name, None)

@@ -25,7 +25,6 @@ def optimize(loss, params):
 
 
 def resnet_gaze_model_fn(features, labels, mode, params):
-
     # Add training switch to parameters
     params['is_training'] = (mode == tf.estimator.ModeKeys.TRAIN)
 
@@ -40,12 +39,14 @@ def resnet_gaze_model_fn(features, labels, mode, params):
         # Final layer for regression has no activation function
         output = tf.layers.dense(x, 2, activation=None, name='output')
 
+    export_outputs = {'output': output}
 
     # Provide an estimator spec for `ModeKeys.PREDICT`.
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(
             mode=mode,
-            predictions={'gazeloc': output})
+            predictions={'gazeloc': output},
+            export_outputs=export_outputs)
 
     # Calculate loss using mean squared error
     loss = tf.losses.mean_squared_error(labels, output)

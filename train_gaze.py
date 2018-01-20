@@ -57,7 +57,8 @@ def run_training(yaml_name=None):
             if loss > trainer.max_loss:
                 print('Loss is too big off the bat, ending run')
                 break
-
+        # Add run stats to the train history dataframe
+        trainer.update_history(epoch_idx, loss, rmse)
 
 if __name__ == '__main__':
     run_training('run/gaze_train_synth.yaml')
