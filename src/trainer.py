@@ -34,7 +34,6 @@ class Trainer(Config):
         d = datetime.datetime.today()
         save_name = '%s_%sm_%sd_%shr_%smin' % (self.experiment_name, d.month, d.day, d.hour, d.minute)
         self.history_save_path = os.path.join(self.model_dir, save_name)
-        self.make_path(self.history_save_path)
 
     def update_history(self, steps, loss, rmse):
         # Add loss and steps to model params dictionary
@@ -44,9 +43,9 @@ class Trainer(Config):
         model_params['rmse'] = rmse
         model_params['id'] = self.run_id
         # Add the run to the history dataframe
-        self.history.append(model_params, ignore_index=True)
+        self.history = self.history.append(model_params, ignore_index=True)
         # Save pandas dataframe to file
-        self.history.to_pickle(self.history_save_path)
+        self.history.to_pickle(self.history_save_path + '.pdpckle')
 
     def next_estimator(self):
         # Model params from hyperparameters
