@@ -3,7 +3,7 @@ import sys
 import glob
 import re
 import tensorflow as tf
-import PIL as Image
+import PIL.Image
 import numpy as np
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -14,9 +14,17 @@ from src.config.config import Config
 
 class Dataset(object):
 
-    def __init__(self, config=None):
-        assert config is not None, 'Please provide a yaml config file for the dataset'
-        self.config = Config.from_yaml(config)
+    @classmethod
+    def from_yaml(cls, yaml_name):
+        cls.config = Config(yaml_name)
+        assert cls.config.dataset_type in ['gaze', 'image'], 'Config dataset type unknown or missing'
+        if cls.config.dataset_type == 'gaze':
+            return GazeDataset()
+        if cls.config.dataset_type == 'image':
+            return ImageDataset()
+        return cls
+
+    def __init__(self):
         self.dataset_path = os.path.join(self.config.data_dir, self.config.dataset_name)
         if not os.path.exists(self.dataset_path):
             raise Exception('Dataset not found in path')
@@ -26,12 +34,13 @@ class Dataset(object):
         else:
             self._to_tfrecords()
 
+    # Define the input feed function in here, TF is picky about what it wants
     def input_feed(self):
         with tf.name_scope('input_feed_gen'):
             dataset = tf.data.TFRecordDataset(self.tfrecord_path)
             dataset = dataset.take(self.config.dataset_len)
             dataset = dataset.map(lambda x: self._decode(x))
-            dataset.repeat()  # Repeat dataset indefinitely
+            # dataset.repeat()  # Repeat dataset indefinitely
             if self.config.image_augmentation:
                 dataset = dataset.map(lambda *x: self._image_augmentation(x))
             if self.config.grayscale:
@@ -40,8 +49,9 @@ class Dataset(object):
             if self.config.shuffle:
                 dataset = dataset.shuffle(self.config.buffer_size)
             dataset = dataset.batch(self.config.batch_size)
-            iterator = dataset.make_initializable_iterator()
-        return iterator, iterator.get_next()
+            iterator = dataset.make_one_shot_iterator()
+        return iterator.get_next()
+
 
     def _to_tfrecords(self):
         image_paths = glob.glob(os.path.join(self.dataset_path, '*.png'))
@@ -52,7 +62,7 @@ class Dataset(object):
 
     def _imagepath_to_string(self, image_path):
         # Get image and label from image path
-        image_raw = Image.open(image_path)
+        image_raw = PIL.Image.open(image_path)
         image_resized = image_raw.resize((self.config.image_width, self.config.image_height))
         img = np.array(image_resized)
         # Sometimes images have an extra 4th alpha channel
@@ -61,10 +71,10 @@ class Dataset(object):
 
     def _image_augmentation(self, image):
         with tf.name_scope('image_augment'):
-            if self.config.random_brigtness:
-                image = tf.image.random_brightness(image, self.config.brightnes_max_delta)
             if self.config.random_contrast:
                 image = tf.image.random_contrast(image, self.config.contrast_lower, self.config.contrast_upper)
+            if self.config.random_brigtness:
+                image = tf.image.random_brightness(image, self.config.brightnes_max_delta)
             return image
 
     def _grayscale(self, image):
@@ -94,16 +104,6 @@ class Dataset(object):
 
 class ImageDataset(Dataset):
 
-    def _write_tfrecords(self, image_paths, writer):
-        for image_path in image_paths:
-            img_string = self._imagepath_to_string(image_path)
-            # Feature defines each discrete entry in the tfrecords file
-            feature = {
-                'image_raw': self._bytes_feature(img_string),
-            }
-            example = tf.train.Example(features=tf.train.Features(feature=feature))
-            writer.write(example.SerializeToString())
-
     def _decode(self, serialized_example):
         """
         Decodes a serialized example for an image
@@ -114,9 +114,19 @@ class ImageDataset(Dataset):
             serialized_example,
             features={'image_raw': tf.FixedLenFeature([], tf.string)})
         image = tf.decode_raw(features['image_raw'], tf.uint8)
-        image_shape = tf.stack([self.config.image_height, self.config.image_width, self.config.image_channels])
+        image_shape = tf.stack([self.config.image_height, self.config.image_width, self.config.image_channels_input])
         image = tf.reshape(image, image_shape)
         return image
+
+    def _write_tfrecords(self, image_paths, writer):
+        for image_path in image_paths:
+            img_string = self._imagepath_to_string(image_path)
+            # Feature defines each discrete entry in the tfrecords file
+            feature = {
+                'image_raw': self._bytes_feature(img_string),
+            }
+            example = tf.train.Example(features=tf.train.Features(feature=feature))
+            writer.write(example.SerializeToString())
 
 
 class GazeDataset(Dataset):
@@ -138,7 +148,7 @@ class GazeDataset(Dataset):
         gaze_y = tf.cast(features['gaze_y'], tf.int32)
         target = [gaze_x, gaze_y]
         image = tf.decode_raw(features['image_raw'], tf.uint8)
-        image_shape = tf.stack([self.config.image_height, self.config.image_width, self.config.image_channels])
+        image_shape = tf.stack([self.config.image_height, self.config.image_width, self.config.image_channels_input])
         image = tf.reshape(image, image_shape)
         return image, target
 

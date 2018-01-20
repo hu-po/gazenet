@@ -18,12 +18,14 @@ class Config(object):
     image_width = 128
     image_height = 96
     image_channels = 1
+    image_channels_input = 3  # Number of channels for raw input images
+    grayscale = True
 
-    @classmethod
-    def from_yaml(cls, yaml_name):
+    def __init__(self, yaml_name=None):
+        assert yaml_name is not None, 'Please provide a yaml config file'
         # If a yaml file is given, unpack into config properties
         if yaml_name is not None:
-            yaml_path = os.path.join(cls.config_dir, yaml_name)
+            yaml_path = os.path.join(self.config_dir, yaml_name)
             if not os.path.exists(yaml_path):
                 raise Exception('Config yaml not found at %s' % yaml_path)
             with open(yaml_path, 'r') as stream:
@@ -32,8 +34,4 @@ class Config(object):
                 except yaml.YAMLError as exc:
                     print(exc)
             for key, value in params.items():
-                setattr(cls, key, value)
-        return cls
-
-
-
+                setattr(self, key, value)

@@ -1,0 +1,19 @@
+model_func: 'resnet_gaze_model_fn'
+model_name : 'gaze_resnet'
+# Optimization parameters
+optimizer_type : 'adam'
+hyperparams:
+  dropout_keep_prob: [0.5, 0.7, 0.9]
+  learning_rate : [0.001, 0.002, 0.0005, 0.0001]
+  # Resnet Base
+  num_rb : [2, 3, 4]
+  rb_feat : [8, 16, 32]
+  rb_kernel : [3, 4, 6]
+  batch_norm : [True, False]
+  # FC Head
+  fc_layers : [[64, 32], [64, 64], [64], [32], [128], [128, 32], [128, 64, 32]]
+  dimred_feat : [16, 32, 64]
+  dimred_kernel : [3, 4, 6, 8]
+  dimred_stride : [1, 2, 4]
+# Parameters required by the model_func
+model_params: ['model_name', 'dropout_keep_prob', 'optimizer_type', 'learning_rate', 'num_rb', 'rb_feat', 'rb_kernel', 'batch_norm', 'fc_layers', 'dimred_feat', 'dimred_kernel', 'dimred_stride']

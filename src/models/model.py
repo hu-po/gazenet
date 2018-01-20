@@ -1,83 +1,51 @@
 import os
 import sys
-import tensorflow as tf
+import random
+import itertools
+from collections import OrderedDict
 
-mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
-import src.models.layers as layers
 from src.config.config import Config
 
-'''
-Base model class is inherited to re-use some common code
-'''
 
+class Model(Config):
 
-class Model(object):
+    def __init__(self, yaml_name):
+        super().__init__(yaml_name)
+        # Convert hyperparameters into an ordered dict
+        list_of_tuples = [(key, self.hyperparams[key]) for key in self.hyperparams.keys()]
+        self.hyperparams = OrderedDict(list_of_tuples)
 
-    def __init__(self, config=None):
-        assert config is not None, 'Please provide a yaml config file for the dataset'
-        self.config = Config.from_yaml(config)
-        self.graph = tf.Graph()
-        self.saver = None
-        with self.graph.as_default():
-            # All models in this repo have image input and labels
-            self.image = tf.placeholder(tf.float32, shape=(None,
-                                                           self.config.image_height,
-                                                           self.config.image_width,
-                                                           self.config.image_channels),
-                                        name='input_image')
-            self.label = tf.placeholder(tf.float32, shape=(None, 2), name='label')
-            # Boolean indicates whether model is in training mode
-            self.is_training = tf.placeholder(tf.bool, shape=[], name='is_training')
-            # List of summaries in this model class
-            self.summaries = []
-            # Build graph
-            self.predict = self.model_func()
-            self.loss = self.loss_func()
-            self.optimize = self.optimize_func()
+        # Each 'run' is a particular permutation of hyperparameters
+        self.run_idx = 0
+        self.runs = self._generate_runs()
 
-    # TODO: Load saved model
-    def model_base(self, x):
-        x = layers.resnet(x, self)
-        return x
+    def next_run(self):
+        permutation = self.runs[self.run_idx]
+        for i, key in enumerate(self.hyperparams.keys()):
+            # Change the hyperparam class property
+            value = self.hyperparams[key][permutation[i]]
+            setattr(self, key, value)
+        self.run_idx += 1
+        return self.model_param_dict()
 
-    def model_head(self, input):
-        raise NotImplementedError('Model must have a model head function')
+    def model_param_dict(self):
+        model_params = {}
+        for param_name in self.model_params:
+            value = getattr(self, param_name, None)
+            model_params[param_name] = value
+        return model_params
 
-    def model_func(self):
-        with tf.variable_scope(self.config.model_name, initializer=self.config.initializer, reuse=tf.AUTO_REUSE):
-            self.add_summary('input_image', self.image, 'image')
-            base = self.model_base(self.image)
-            head = self.model_head(base)
-            # self.saver = tf.train.Saver({'base': base, 'head': head})
-            return head
-
-    def loss_func(self):
-        raise NotImplementedError('Model must have a loss function')
-
-    def add_summary(self, name, value, summary_type='scalar'):
-        # Creates a summary object and adds it to the summaries list for the model class
-        if summary_type is 'scalar':
-            s = tf.summary.scalar(name, value)
-        elif summary_type is 'image':
-            s = tf.summary.image(name, value)
-        else:
-            raise Exception('Non valid summary type given')
-        self.summaries.append(s)
-
-    def optimize_func(self):
-        with tf.variable_scope('optimizer', reuse=tf.AUTO_REUSE):
-            if self.config.optimizer_type == 'rmsprop':
-                optimizer = tf.train.RMSPropOptimizer(self.config.learning_rate)
-            elif self.config.optimizer_type == 'sgd':
-                optimizer = tf.train.GradientDescentOptimizer(self.config.learning_rate)
-            elif self.config.optimizer_type == 'adam':
-                optimizer = tf.train.AdamOptimizer(self.config.learning_rate)
-            else:
-                raise Exception('Unkown optimizer type: %s' % self.config.optimizer_type)
-            # Add mean and variance ops to dependencies so batch norm works during training
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope=self.config.model_name)
-            with tf.control_dependencies(update_ops):
-                train_op = optimizer.minimize(self.loss)
-        return train_op
+    def _generate_runs(self):
+        # Generate all runs (all possible permutations of hyperparameters)
+        permutation_builder = []
+        for key, value in self.hyperparams.items():
+            permutation_builder.append(range(len(value)))
+        # Get all possible permutations from the permutations builder
+        permutations = list(itertools.product(*permutation_builder))
+        permutations = [list(a) for a in permutations]
+        # Shuffle prevents it from being a grid search
+        random.shuffle(permutations)
+        return permutations

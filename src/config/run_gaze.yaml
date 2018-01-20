@@ -1,8 +1,0 @@
-# Device index of camera
-video_source : 0
-# Number of worker threads
-num_workers : 2
-# Size of the image queue
-queue_size : 5
-# Name of opencv window
-window_name : "Gaze Tracker"
