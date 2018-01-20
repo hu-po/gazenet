@@ -1,6 +1,0 @@
-initializer : 'xavier'
-hyperparams:
-  num_rb : [2, 3, 4, 5]
-  rb_feat : [8, 16, 32, 64]
-  rb_kernel : [3, 4]
-  batch_norm : [True, False]

@@ -1,129 +1,44 @@
 import os
 import sys
-import datetime
-import random
-import itertools
-import numpy as np
-from collections import OrderedDict
 import tensorflow as tf
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
+from src.dataset import Dataset
+from src.models.model import Model
 from src.config.config import Config
-from src.dataset import GazeDataset
+import src.models.model_func_bank as model_func_bank
 
 
 class Trainer(Config):
 
-    @classmethod
-    def from_config(cls):
+    def __init__(self):
+        # Create test and train dataset objects
+        self.train_dataset = Dataset.from_yaml(self.train_dataset_yaml)
+        self.test_dataset = Dataset.from_yaml(self.test_dataset_yaml)
+        # Create model object
+        self.model = Model.from_yaml(self.model_yaml)
 
+    def next_estimator(self):
+        # Model params from hyperparameters
+        run_name = self.model.run_specific_name()
+        model_params = self.model.build_model_params()
+        # Model directory based on hyperparams
+        model_dir = os.path.join(self.model_dir, run_name)
+        self.make_path(model_dir)
+        # Create new runconfig object
+        run_config = tf.estimator.RunConfig(model_dir=model_dir,
+                                            save_summary_steps=self.save_summary_steps,
+                                            save_checkpoints_steps=self.save_checkpoints_steps,
+                                            keep_checkpoint_max=1)
+        # Create a new estimator object
+        estimator = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
+                                           params=model_params,
+                                           config=run_config)
+        return estimator
 
-        # Create dataset objects for test and train
-        train_dataset = GazeDataset(config='datasets/synthetic_gaze_train_small.yaml')
-        test_dataset = GazeDataset(config='datasets/synthetic_gaze_test.yaml')
-
-        # Set model params
-        model_params = {"learning_rate": LEARNING_RATE}
-
-        # Instantiate Estimator
-        nn = tf.estimator.Estimator(model_fn=model_fn, params=model_params)
-
-        # Train
-        nn.train(input_fn=train_dataset.input_feed, steps=5000)
-
-        # Test
-        ev = nn.evaluate(input_fn=test_dataset.input_feed)
-        print("Loss: %s" % ev["loss"])
-        print("Root Mean Squared Error: %s" % ev["rmse"])
-
-    def mixed_image_batch(self):
-        # Placeholders for mixed batch
-        real_images = tf.placeholder(tf.float32, shape=(None,
-                                                        self.config.image_height,
-                                                        self.config.image_width,
-                                                        self.config.image_channels),
-                                     name='real_images')
-        refined_images = tf.placeholder(tf.float32, shape=(None,
-                                                           self.config.image_height,
-                                                           self.config.image_width,
-                                                           self.config.image_channels),
-                                        name='refined_images')
-        # Combine together refined synthetic and real images in batch
-        combined_images = tf.concat([real_images, refined_images], axis=0)
-        # Create label vectors of same length as image batches (0=fake, 1=real)
-        real_labels = tf.one_hot(tf.ones(shape=[tf.shape(real_images)[0]], dtype=tf.uint8), 2)
-        fake_labels = tf.one_hot(tf.zeros(shape=[tf.shape(refined_images)[0]], dtype=tf.uint8), 2)
-        combined_labels = tf.concat([real_labels, fake_labels], axis=0)
-        # Make sure to shuffle the images and labels with the same seed
-        seed = 1
-        shuffled_images = tf.random_shuffle(combined_images, seed=seed)
-        shuffled_labels = tf.random_shuffle(combined_labels, seed=seed)
-        return real_images, refined_images, [shuffled_images, shuffled_labels]
-
-    def build_hyperparameter_config(config, exp_config_handle=None):
-        # Runs are required when configs contain hyperparameters
-        config.run_log_path = None
-        config.run_checkpoint_path = None
-        # List of all runs within run
-        config.runs = []
-        if exp_config_handle is not None:
-            # Take log and checkpoint paths from run
-            config.log_path = exp_config_handle.log_path
-            config.checkpoint_path = exp_config_handle.checkpoint_path
-
-    def prepare_run(config, idx):
-        config.set_hyperparams(idx)
-        config.create_run_directories()
-
-    def generate_runs(config):
-        # Generate all runs (all possible permutations of hyperparameters)
-        permutation_builder = []
-        for key, value in config.hyperparams.items():
-            permutation_builder.append(range(len(value)))
-        # Get all possible permutations from the permutations builder
-        permutations = list(itertools.product(*permutation_builder))
-        permutations = [list(a) for a in permutations]
-        # Shuffle prevents it from being a grid search
-        random.shuffle(permutations)
-        # Add run-related properties to config class
-        config.runs = permutations
-        config.num_runs = len(config.runs)
-
-    def set_hyperparams(config, idx):
-        permutation = config.runs[idx]
-        config.run_hyperparams = OrderedDict()
-        for i, key in enumerate(config.hyperparams.keys()):
-            value = config.hyperparams[key][permutation[i]]
-            config.run_hyperparams[key] = value
-            setattr(config, key, value)
-
-    def create_run_directories(config):
-        run_specific_name = config.model_name
-        for key, value in config.run_hyperparams.items():
-            str_value = str(value)
-            if isinstance(value, list):
-                str_value = '_'.join(str(a) for a in value)
-            run_specific_name += '_%s_%s' % (key, str_value)
-        config.run_log_path = os.path.join(config.log_path, run_specific_name)
-        make_path(config.run_log_path)
-        config.run_checkpoint_path = os.path.join(config.checkpoint_path, run_specific_name)
-        make_path(config.run_checkpoint_path)
-
+    @staticmethod
     def make_path(path):
         if not os.path.exists(path):
             os.mkdir(path)
-
-    def build_dataset_config(config):
-
-    def build_experiment_config(config):
-        d = datetime.datetime.today()
-        experiment_name = '%s_%sm_%sd_%shr_%smin' % (config.experiment_name, d.month, d.day, d.hour, d.minute)
-        # Create run specific log and checkpoint directories
-        config.log_path = os.path.join(config.log_dir, experiment_name)
-        config.checkpoint_path = os.path.join(config.model_dir, experiment_name)
-        make_path(config.log_path)
-        make_path(config.checkpoint_path)
-        print('Created log and checkpoint directories for run %s' % experiment_name)
-

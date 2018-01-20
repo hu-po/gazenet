@@ -1,0 +1,22 @@
+# Experiment name is the root directory for logs
+experiment_name : 'estimator_gaze'
+# Dataset parameters
+train_dataset_yaml : 'datasets/synthetic_gaze_train_full.yaml'
+test_dataset_yaml : 'datasets/synthetic_gaze_test.yaml'
+# Summary and Checkpoint saving
+save_summary_steps : 1
+save_checkpoints_steps : 1
+# Training parameters
+num_epochs : 30
+# Early stopping
+max_loss : 1000
+best_loss : 1000
+patience : 6
+# Model parameters
+model_yaml : 'models/gaze_resnet.yaml'
+
+
+
+
+
+

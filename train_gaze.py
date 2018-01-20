@@ -1,88 +1,63 @@
 import os
 import sys
 import time
-import tensorflow as tf
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
 
-from src.config.config import Config
-import src.models.model_func_bank as model_func_bank
-from src.dataset import Dataset
-import src.utils.train_utils as train_utils
+from src.trainer import Trainer
 
 '''
-This file is used to train the gaze net. It contains functions for reading
-and decoding the data (should be in TFRecords format).
+This file is used to train the gaze net.
 '''
 
 
-def run_training(config=None):
+def run_training(yaml_name=None):
     """
         Train gaze_trainer according to given config.
     """
-    assert config is not None, 'Please provide a config when running gaze trainer'
-    config = Config.from_yaml(config)
-    # Get hooks and feed functions for train and test datasets
-    train_dataset = Dataset.from_yaml(config.train_dataset_yaml)
-    test_dataset = Dataset.from_yaml(config.test_dataset_yaml)
-    # Set up run config
-    runconfig = tf.estimator.RunConfig(model_dir=config.model_dir,
-                                       save_summary_steps=config.save_summary_steps,
-                                       save_checkpoints_steps=config.save_checkpoints_steps,
-                                       keep_checkpoint_max=1)
+    assert yaml_name is not None, 'Please provide a trainer yaml when running gaze trainer'
+    trainer = Trainer.from_yaml(yaml_name)
+    # Iterate through all the possible runs in the trainer
+    for _ in trainer.runs:
+        # Get the next estimator object from the trainer object
+        estimator = trainer.next_estimator()
 
-    # Instantiate Estimator
-    nn = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
-                                params=config.model_params,
-                                config=runconfig)
-
-    # # Create hooks
-    # early_stop_hook = train_utils.EarlyStoppingHook(config=config)
-    #
-    # # Train and Test specs
-    # train_spec = tf.estimator.TrainSpec(input_fn=train_input_feed)
-    # eval_spec = tf.estimator.EvalSpec(input_fn=test_input_feed, hooks=[early_stop_hook])
-    #
-    # tf.estimator.train_and_evaluate(estimator=nn,
-    #                                 train_spec=train_spec,
-    #                                 eval_spec=eval_spec)
-
-    # Early stopping params
-    best_loss = config.best_loss
-    steps_since_loss_decrease = -1
-    # Loop train and testing for configured number of epochs
-    for epoch_idx in range(config.num_epochs):
-        # Training
-        train_start = time.time()
-        # Train
-        nn.train(input_fn=train_dataset.input_feed)
-        train_duration = time.time() - train_start
-        # Testing
-        test_start = time.time()
-        ev = nn.evaluate(input_fn=test_dataset.input_feed)
-        loss = ev['loss']
-        rmse = ev['rmse']
-        test_duration = time.time() - test_start
-        print('Epoch %d: Training (%.3f sec) Testing (%.3f sec) - loss: %.2f - rmse: %.2f' % (epoch_idx,
-                                                                                              train_duration,
-                                                                                              test_duration,
-                                                                                              loss,
-                                                                                              rmse))
-        # Early stopping breaks out if loss hasn't decreased in N steps
-        if best_loss < loss:
-            steps_since_loss_decrease += 1
-        if loss < best_loss:
-            best_loss = loss
-            steps_since_loss_decrease = 0
-        if steps_since_loss_decrease >= config.patience:
-            print('Loss no longer decreasing, ending run')
-            break
-        # End early if the loss is way out of wack
-        if loss > config.max_loss:
-            print('Loss is too big off the bat, ending run')
-            break
+        # Early stopping params
+        best_loss = trainer.best_loss
+        steps_since_loss_decrease = -1
+        # Loop train and testing for configured number of epochs
+        for epoch_idx in range(trainer.num_epochs):
+            # Training
+            train_start = time.time()
+            # Train
+            estimator.train(input_fn=trainer.train_dataset.input_feed)
+            train_duration = time.time() - train_start
+            # Testing
+            test_start = time.time()
+            ev = estimator.evaluate(input_fn=trainer.test_dataset.input_feed)
+            loss = ev['loss']
+            rmse = ev['rmse']
+            test_duration = time.time() - test_start
+            print('Epoch %d: Training (%.3f sec) Testing (%.3f sec) - loss: %.2f - rmse: %.2f' % (epoch_idx,
+                                                                                                  train_duration,
+                                                                                                  test_duration,
+                                                                                                  loss,
+                                                                                                  rmse))
+            # Early stopping breaks out if loss hasn't decreased in N steps
+            if best_loss < loss:
+                steps_since_loss_decrease += 1
+            if loss < best_loss:
+                best_loss = loss
+                steps_since_loss_decrease = 0
+            if steps_since_loss_decrease >= trainer.patience:
+                print('Loss no longer decreasing, ending run')
+                break
+            # End early if the loss is way out of wack
+            if loss > trainer.max_loss:
+                print('Loss is too big off the bat, ending run')
+                break
 
 
 if __name__ == '__main__':
-    run_training('run/gaze_train.yaml')
+    run_training('run/gaze_train_synth.yaml')
