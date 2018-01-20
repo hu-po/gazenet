@@ -10,7 +10,6 @@ mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.append(mod_path)
 
 from src.config.config import Config
-import src.utils.train_utils as train_utils
 
 
 class Dataset(object):

@@ -13,24 +13,26 @@ import src.models.model_func_bank as model_func_bank
 
 class Trainer(Config):
 
-    def __init__(self):
+    def __init__(self, yaml_name):
+        assert yaml_name is not None, 'Please provide a yaml config file for trainer'
+        self.config = Config.from_yaml(yaml_name)
         # Create test and train dataset objects
-        self.train_dataset = Dataset.from_yaml(self.train_dataset_yaml)
-        self.test_dataset = Dataset.from_yaml(self.test_dataset_yaml)
+        self.train_dataset = Dataset.from_yaml(self.config.train_dataset_yaml)
+        self.test_dataset = Dataset.from_yaml(self.config.test_dataset_yaml)
         # Create model object
-        self.model = Model.from_yaml(self.model_yaml)
+        self.model = Model(self.config.model_yaml)
 
     def next_estimator(self):
         # Model params from hyperparameters
-        run_name = self.model.run_specific_name()
+        run_name = self.model.next_run()
         model_params = self.model.build_model_params()
         # Model directory based on hyperparams
         model_dir = os.path.join(self.model_dir, run_name)
         self.make_path(model_dir)
         # Create new runconfig object
         run_config = tf.estimator.RunConfig(model_dir=model_dir,
-                                            save_summary_steps=self.save_summary_steps,
-                                            save_checkpoints_steps=self.save_checkpoints_steps,
+                                            save_summary_steps=self.config.save_summary_steps,
+                                            save_checkpoints_steps=self.config.save_checkpoints_steps,
                                             keep_checkpoint_max=1)
         # Create a new estimator object
         estimator = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,

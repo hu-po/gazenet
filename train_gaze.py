@@ -17,9 +17,9 @@ def run_training(yaml_name=None):
         Train gaze_trainer according to given config.
     """
     assert yaml_name is not None, 'Please provide a trainer yaml when running gaze trainer'
-    trainer = Trainer.from_yaml(yaml_name)
+    trainer = Trainer(yaml_name)
     # Iterate through all the possible runs in the trainer
-    for _ in trainer.runs:
+    for _ in trainer.model.runs:
         # Get the next estimator object from the trainer object
         estimator = trainer.next_estimator()
 
