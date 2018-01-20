@@ -71,10 +71,10 @@ class Dataset(object):
 
     def _image_augmentation(self, image):
         with tf.name_scope('image_augment'):
-            if self.config.random_brigtness:
-                image = tf.image.random_brightness(image, self.config.brightnes_max_delta)
             if self.config.random_contrast:
                 image = tf.image.random_contrast(image, self.config.contrast_lower, self.config.contrast_upper)
+            if self.config.random_brigtness:
+                image = tf.image.random_brightness(image, self.config.brightnes_max_delta)
             return image
 
     def _grayscale(self, image):

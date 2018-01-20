@@ -7,11 +7,11 @@ test_dataset_yaml : 'datasets/synthetic_gaze_test.yaml'
 save_summary_steps : 1
 save_checkpoints_steps : 1
 # Training parameters
-num_epochs : 30
+num_epochs : 50
 # Early stopping
 max_loss : 1000
 best_loss : 1000
-patience : 6
+patience : 8
 # Model parameters
 model_yaml : 'models/gaze_resnet.yaml'
 
