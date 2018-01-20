@@ -36,32 +36,24 @@ class Dataset(object):
         else:
             self._to_tfrecords()
 
-    def feed_and_hook(self):
-        # Initializer hook is used to init dataset feeders before running training or testing
-        init_hook = train_utils.IteratorInitializerHook()
+    # Define the input feed function in here, TF is picky about what it wants
+    def input_feed(self):
+        with tf.name_scope('input_feed_gen'):
+            dataset = tf.data.TFRecordDataset(self.tfrecord_path)
+            dataset = dataset.take(self.config.dataset_len)
+            dataset = dataset.map(lambda x: self._decode(x))
+            # dataset.repeat()  # Repeat dataset indefinitely
+            if self.config.image_augmentation:
+                dataset = dataset.map(lambda *x: self._image_augmentation(x))
+            if self.config.grayscale:
+                dataset = dataset.map(lambda *x: self._grayscale(x))
+            dataset = dataset.map(lambda *x: self._standardize(x))
+            if self.config.shuffle:
+                dataset = dataset.shuffle(self.config.buffer_size)
+            dataset = dataset.batch(self.config.batch_size)
+            iterator = dataset.make_one_shot_iterator()
+        return iterator.get_next()
 
-        # Define the input feed function in here, TF is picky about what it wants
-        def input_feed():
-            with tf.name_scope('input_feed_gen'):
-                dataset = tf.data.TFRecordDataset(self.tfrecord_path)
-                dataset = dataset.take(self.config.dataset_len)
-                dataset = dataset.map(lambda x: self._decode(x))
-                dataset.repeat()  # Repeat dataset indefinitely
-                if self.config.image_augmentation:
-                    dataset = dataset.map(lambda *x: self._image_augmentation(x))
-                if self.config.grayscale:
-                    dataset = dataset.map(lambda *x: self._grayscale(x))
-                dataset = dataset.map(lambda *x: self._standardize(x))
-                if self.config.shuffle:
-                    dataset = dataset.shuffle(self.config.buffer_size)
-                dataset = dataset.batch(self.config.batch_size)
-                # iterator = dataset.make_initializable_iterator()
-                iterator = dataset.make_one_shot_iterator()
-                nonlocal init_hook
-                init_hook.iterator = iterator
-            return iterator.get_next()
-
-        return input_feed, init_hook
 
     def _to_tfrecords(self):
         image_paths = glob.glob(os.path.join(self.dataset_path, '*.png'))

@@ -25,8 +25,8 @@ model_params:
   rb_kernel : 3
   batch_norm : True
   # Model parameters - FC Head
-  fc_layers : [128, 128, 64]
-  dimred_feat : 32
+  fc_layers : [64, 32]
+  dimred_feat : 16
   dimred_kernel : 4
   dimred_stride : 2
   dropout_keep_prob: 0.6
