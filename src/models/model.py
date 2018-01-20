@@ -13,10 +13,9 @@ from src.config.config import Config
 class Model(Config):
 
     def __init__(self, yaml_name):
-        assert yaml_name is not None, 'Please provide a yaml config file for trainer'
-        self.config = Config.from_yaml(yaml_name)
+        super().__init__(yaml_name)
         # Convert hyperparameters into an ordered dict
-        list_of_tuples = [(key, self.config.hyperparams[key]) for key in self.config.hyperparams.keys()]
+        list_of_tuples = [(key, self.hyperparams[key]) for key in self.hyperparams.keys()]
         self.hyperparams = OrderedDict(list_of_tuples)
 
         # Each 'run' is a particular permutation of hyperparameters
@@ -25,7 +24,7 @@ class Model(Config):
 
     def next_run(self):
         permutation = self.runs[self.run_idx]
-        run_specific_name = self.config.model_name
+        run_specific_name = self.model_name
         for i, key in enumerate(self.hyperparams.keys()):
             # Change the hyperparam class property
             value = self.hyperparams[key][permutation[i]]
@@ -40,7 +39,7 @@ class Model(Config):
 
     def build_model_params(self):
         model_params = {}
-        for param_name in self.config.model_params:
+        for param_name in self.model_params:
             value = getattr(self, param_name, None)
             model_params[param_name] = value
         return model_params

@@ -1,8 +1,0 @@
-dataset_name : '100118_fixedhead/train'
-dataset_type : 'image'
-tfrecord_name : 'full_synthetic_image.tfrecords'
-full_dataset: True
-shuffle : False
-batch_size : 32
-# Image augmentation when training
-image_augmentation : False

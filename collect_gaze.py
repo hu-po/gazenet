@@ -11,14 +11,11 @@ from src.utils.cam_utils import WebcamVideoStream, screen_plot
 
 '''
 This python file collects unlabeled real gaze images using the webcamera.
-
-Sources:
-[1] https://github.com/datitran/object_detector_app
 '''
 
 if __name__ == '__main__':
     # Set up config object
-    conf = Config.from_yaml('collect_gaze.yaml')
+    conf = Config.from_yaml('run/collect_gaze.yaml')
     # Create local data dir
     dataset_dir = os.path.join(conf.data_dir, conf.dataset_name)
     # Start up webcam stream

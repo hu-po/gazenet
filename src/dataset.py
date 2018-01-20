@@ -15,9 +15,8 @@ from src.config.config import Config
 class Dataset(object):
 
     @classmethod
-    def from_yaml(cls, config):
-        assert config is not None, 'Please provide a yaml config file for the dataset'
-        cls.config = Config.from_yaml(config)
+    def from_yaml(cls, yaml_name):
+        cls.config = Config(yaml_name)
         assert cls.config.dataset_type in ['gaze', 'image'], 'Config dataset type unknown or missing'
         if cls.config.dataset_type == 'gaze':
             return GazeDataset()

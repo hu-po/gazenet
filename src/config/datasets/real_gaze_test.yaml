@@ -1,11 +1,10 @@
-dataset_name : '100118_fixedhead/test'
+dataset_name : '150118_gaze/train'
 dataset_type : 'gaze'
 tfrecord_name : 'test.tfrecords'
 # Train targets are taken from image filenames
 filename_regex : '(\d.\d+)_(\d.\d+).png'
-full_dataset: False
-dataset_len : 20
+full_dataset: True
 shuffle : False
-batch_size : 20
+batch_size : 8
 # Image augmentation when testing
 image_augmentation : False

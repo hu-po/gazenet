@@ -3,9 +3,8 @@ model_name : 'gaze_resnet'
 # Optimization parameters
 optimizer_type : 'adam'
 dropout_keep_prob: 0.6
+learning_rate : 0.001
 hyperparams:
-  # Optimization params
-  learning_rate : [0.01, 0.005, 0.001]
   # Resnet Base
   num_rb : [2, 3]
   rb_feat : [8, 16]
