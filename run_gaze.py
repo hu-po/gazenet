@@ -17,9 +17,24 @@ and outputs your current gaze location on the screen. Make sure to fullscreen it
 
 Sources:
 [1] https://github.com/datitran/object_detector_app
+[2] https://github.com/tensorflow/serving/issues/488
 '''
 
 CHKPT = '/home/ook/repos/gazeGAN/local/models/gaze_resnet_rb_kernel_3_fc_layers_64_batch_norm_False_dimred_stride_4_rb_feat_8_num_rb_2_dimred_feat_32_dimred_kernel_4_learning_rate_0.01/checkpoint'
+
+
+SESS_DICT = {}
+def get_session(model_id):
+    global SESS_DICT
+    config = tf.ConfigProto(allow_soft_placement=True)
+    SESS_DICT[model_id] = tf.Session(config=config)
+    return SESS_DICT[model_id]
+
+
+def load_tf_model(model_path):
+    sess = get_session(model_path)
+    tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], model_path)
+    return sess
 
 def gaze_inference(image_np, sess, model_graph):
     # Expand dimensions since the model expects images to have shape: [1, None, None, 3]

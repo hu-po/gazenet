@@ -28,10 +28,13 @@ def resnet_gaze_model_fn(features, labels, mode, params):
     # Add training switch to parameters
     params['is_training'] = (mode == tf.estimator.ModeKeys.TRAIN)
 
+    if isinstance(features, dict):
+        features = features['input_image']
+
     with tf.name_scope(params['model_name']):
         # Build model using layers defined in layers file
         input_image = features
-        tf.summary.image('input_image', input_image)
+        # tf.summary.image('input_image', input_image)
         x = layers.resnet(input_image, params)
         x = layers.dim_reductor(x, params)
         x = layers.fc_head(x, params)

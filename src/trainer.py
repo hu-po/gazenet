@@ -18,13 +18,13 @@ class Trainer(Config):
 
     def __init__(self, yaml_name):
         super().__init__(yaml_name)
-        # Create a specific directory in the model directory for these runs
-
         # Create test and train dataset objects
         self.train_dataset = Dataset.from_yaml(self.train_dataset_yaml)
         self.test_dataset = Dataset.from_yaml(self.test_dataset_yaml)
         # Create model object
         self.model = Model(self.model_yaml)
+        # Every hyperparameter run has an estimator
+        self.estimator = None
         # Unique identifier string for each hyperparameter run
         self.run_id = None
         # Keep track of run performance and hyperparameters in a pandas dataframe
@@ -60,10 +60,21 @@ class Trainer(Config):
                                             save_checkpoints_steps=self.save_checkpoints_steps,
                                             keep_checkpoint_max=1)
         # Create a new estimator object
-        estimator = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
-                                           params=model_params,
-                                           config=run_config)
-        return estimator
+        self.estimator = tf.estimator.Estimator(model_fn=model_func_bank.resnet_gaze_model_fn,
+                                                params=model_params,
+                                                config=run_config)
+        return self.estimator
+
+    def save_estimator(self):
+        export_dir = os.path.join(self.model_dir, self.run_id, 'exported_model')
+        self.estimator.export_savedmodel(export_dir, self.serving_input_receiver_fn)
+        print("Exported estimator model to " + export_dir)
+
+    def serving_input_receiver_fn(self):
+        feature_spec = {'input_image': tf.FixedLenFeature(dtype=tf.float32,
+                                                          shape=[self.image_width,
+                                                                 self.image_height, 1])}
+        return tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)()
 
     @staticmethod
     def make_path(path):

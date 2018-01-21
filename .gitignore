@@ -4,6 +4,7 @@
 local/data/*
 local/logs/*
 local/models/*
+local/old_models
 
 # =========== #
 #  Notebooks  #

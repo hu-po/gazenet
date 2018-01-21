@@ -52,7 +52,6 @@ class Dataset(object):
             iterator = dataset.make_one_shot_iterator()
         return iterator.get_next()
 
-
     def _to_tfrecords(self):
         image_paths = glob.glob(os.path.join(self.dataset_path, '*.png'))
         print('There are %d images in %s' % (len(image_paths), self.config.dataset_name))
@@ -77,12 +76,14 @@ class Dataset(object):
                 image = tf.image.random_brightness(image, self.config.brightnes_max_delta)
             return image
 
-    def _grayscale(self, image):
+    @staticmethod
+    def _grayscale(image):
         with tf.name_scope('grayscale'):
             image = tf.image.rgb_to_grayscale(image)
             return image
 
-    def _standardize(self, image):
+    @staticmethod
+    def _standardize(image):
         with tf.name_scope('image_prep'):
             image = tf.cast(image, tf.float32) * (1. / 255) - 0.5
             return image
