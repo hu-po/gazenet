@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import tensorflow as tf
 
 mod_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(mod_path)
@@ -61,6 +62,7 @@ def run_training(yaml_name=None):
             trainer.update_history(epoch_idx, loss, rmse)
         except Exception:
             print('Something went wrong, trying the next config')
+            tf.reset_default_graph()
 
 if __name__ == '__main__':
     run_training('run/gaze_train_synth.yaml')

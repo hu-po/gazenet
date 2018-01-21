@@ -39,14 +39,13 @@ def resnet_gaze_model_fn(features, labels, mode, params):
         # Final layer for regression has no activation function
         output = tf.layers.dense(x, 2, activation=None, name='output')
 
-    export_outputs = {'output': output}
 
     # Provide an estimator spec for `ModeKeys.PREDICT`.
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(
             mode=mode,
             predictions={'gazeloc': output},
-            export_outputs=export_outputs)
+            export_outputs={'gazeloc': tf.estimator.export.RegressionOutput(output)})
 
     # Calculate loss using mean squared error
     loss = tf.losses.mean_squared_error(labels, output)
