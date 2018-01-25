@@ -20,7 +20,7 @@ Sources:
 [2] https://github.com/tensorflow/serving/issues/488
 '''
 
-CHKPT = 'frozen_graph.pb'
+CHKPT = '/home/ook/repos/gazeGAN/local/models/a8cf9182-fb79-4a50-bdae-c7911f34598f/frozen_graph.pb'
 
 '''
 
@@ -53,8 +53,8 @@ def gaze_inference(image_np, sess, model_graph):
     image_np_expanded = np.expand_dims(image_np, axis=0)
 
     # Get input and output to the gaze model
-    input_image = model_graph.get_tensor_by_name('input_image')
-    predict = model_graph.get_tensor_by_name('predict')
+    input_image = model_graph.get_tensor_by_name('gaze_resnet/input_image')
+    predict = model_graph.get_tensor_by_name('gaze_resnet/output/BiasAdd')
 
     # Actual detection.
     gaze_output = sess.run(predict, feed_dict={input_image: image_np_expanded})

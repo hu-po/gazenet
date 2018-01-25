@@ -1,8 +1,11 @@
-# GazeGAN
+# GazeNet
 
-GazeGAN tracks the gaze location of a user using the image from the webcam of their laptop.
-Rather than collecting a large dataset of user data, GazeGAN uses synthetic images from a Unity
-simulator and makes them more "real" using a GAN.  
+GazeNet tracks the gaze location of a user using the image from the webcam of their laptop.
+Rather than collecting a large dataset of user data, GazeNet is pre-trained using many synthetic images
+ from a Unity simulator and then trained with a smaller dataset of real images.
+ 
+ ![alt text](docs/synthetic.png "Synthetic Image")
+ ![alt text](docs/real.png "Real Image")
 
 ## Requirements
 
