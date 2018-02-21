@@ -1,7 +1,6 @@
 import argparse
 import sys
 from pathlib import Path
-import datetime
 import torch
 from tensorboardX import SummaryWriter
 
@@ -22,7 +21,7 @@ parser.add_argument('--lr_gamma', type=float, default=0.1,
                     help='gamma in learning rate scheduler[default: 0.1]')
 parser.add_argument('--momentum', type=float, default=0.9,
                     help='optimizer momentum [default: 0.9]')
-parser.add_argument('--num_epochs', type=int, default=10,
+parser.add_argument('--num_epochs', type=int, default=25,
                     help='number of epochs for train [default: 25]')
 parser.add_argument('--batch_size', type=int, default=8,
                     help='batch size for training [default: 8]')
@@ -43,8 +42,9 @@ parser.add_argument('--head_feat_in', type=int, default=256,
 parser.add_argument('--feature_extractor', type=str, default='resnet18',
                     help='Feature extractor to use in model [default: resnet18]')
 # logging
-parser.add_argument('--log', type=bool, default=False,
-                    help='Write tensorboard style logs while training [default: False]')
+parser.add_argument('--log', type=str, default=None,
+                    help='Write tensorboard style logs to this folder [default: None]')
+
 if __name__ == '__main__':
     # Parse and print out parameters
     args = parser.parse_args()
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     # Write tensorboard logs to local logs folder
     writer = None
     if args.log:
-        log_dir = root_dir / 'logs' / datetime.datetime.now().strftime('%b%d_%H-%M-%S')
+        log_dir = root_dir / 'logs' / args.log
         writer = SummaryWriter(log_dir=str(log_dir))
 
     # Train the model
