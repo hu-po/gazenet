@@ -65,14 +65,15 @@ class GazeDataset(Dataset):
     root_dir = Path.cwd()
     data_dir = root_dir / 'data'
 
-    def __init__(self, dataset_name, transform=None, filename_regex='(\d.\d+)_(\d.\d+).png'):
+    def __init__(self, datasets, phase, transform=None, filename_regex='(\d.\d+)_(\d.\d+).png'):
         """
-        :dataset_name: (string) name of directory containing all the images
+        :dataset_name: (string) comma separated list of datasets
+        :phase: (string) either 'test' or 'train'
         :filename_regex: (string) regex used to extract gaze data from filename
         :transform: (optional callable) transform to be applied to image
         """
-        self.name = dataset_name
-        self.data_path = GazeDataset.data_dir / dataset_name
+        self.datasets = datasets.split(',')
+        self.phase = phase
         self.filename_regex = filename_regex
         self.transform = transform
         self.dataset = self._load_dataset()
@@ -93,9 +94,16 @@ class GazeDataset(Dataset):
         Loads dataset into a pandas dataframe
         :return: (pd) dataset with (filename, gaze_x, gaze_y) as header columns
         """
-        # Use pathlib glob to get images
-        image_list = list(self.data_path.glob('*.png'))
-        print('Loading dataset %s, there are %s images.' % (self.data_path.name, len(image_list)))
+        image_list = []
+        # Load and combine all the individual datasets
+        for dataset in self.datasets:
+            image_list_size = len(image_list)
+            data_path = Path(dataset) / self.phase
+            full_path = GazeDataset.data_dir / data_path
+            image_list.extend(full_path.glob('*.png'))
+            dataset_size = len(image_list) - image_list_size
+            print('Found %s images in dataset %s' % (dataset_size, str(data_path)))
+        print('Combined dataset contains %s images.' % len(image_list))
         # Create new pandas dataframe
         df = pd.DataFrame(index=list(range(len(image_list))),
                           columns=['imagepath', 'gaze_x', 'gaze_y'])
@@ -168,11 +176,15 @@ def gaze_dataloader(**kwargs):
     # Data transform define transformation applied to each image before being fed into model
     data_transforms = {
         'train': transforms.Compose([
+            # transforms.ToPILImage(),
+            transforms.Resize(kwargs['imsize']),
             transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'test': transforms.Compose([
+            # transforms.ToPILImage(),
+            transforms.Resize(kwargs['imsize']),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
@@ -181,9 +193,8 @@ def gaze_dataloader(**kwargs):
     # Populate the return dictionary with datasets and dataloaders
     return_dict = {}
     for phase in data_transforms.keys():
-        dataset_name = str(Path(kwargs['dataset_name']) / phase)
         # Create dataset and dataloader objects
-        dataset = GazeDataset(dataset_name, data_transforms[phase])
+        dataset = GazeDataset(kwargs['datasets'], phase, data_transforms[phase])
         dataloader = torch.utils.data.DataLoader(dataset,
                                                  batch_size=kwargs['batch_size'],
                                                  shuffle=True,

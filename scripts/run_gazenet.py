@@ -34,10 +34,12 @@ def gaze_inference(image_np, model):
     input_image = data_utils.ndimage_to_variable(image_np,
                                                  imsize=(args.height, args.width),
                                                  use_gpu=True)
-    # Inference (how about them type conversions)
-    gaze_output = model(input_image).cpu().data.numpy().tolist()[0]
+    # Inference
+    # Clamp output to between 0 and 1 (outside this range doesn't make sense)
+    gaze_output = model(input_image).clamp(0, 1)
+    gaze_list = gaze_output.cpu().data.numpy().tolist()[0]
     # Visualization of the results of a detection.
-    canvas = cam_utils.screen_plot(gaze_output, image=image_np, window_name=args.window_name)
+    canvas = cam_utils.screen_plot(gaze_list, image=image_np, window_name=args.window_name)
     return canvas
 
 

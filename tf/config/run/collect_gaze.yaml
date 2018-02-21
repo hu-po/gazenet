@@ -1,6 +1,0 @@
-# Device index of camera
-video_source : 0
-# Name of the dataset to collect
-dataset_name : '150118_gaze'
-# Name of opencv window
-window_name : "Gaze Collection"

@@ -25,13 +25,21 @@ parser.add_argument('--num_epochs', type=int, default=25,
 parser.add_argument('--batch_size', type=int, default=8,
                     help='batch size for training [default: 8]')
 # data
-parser.add_argument('--dataset', type=str,
-                    help='gaze dataset to train on')
+parser.add_argument('--datasets', type=str,
+                    help='comma separated list of datasets to train on')
+parser.add_argument('-wd', '--width', dest='width', type=int,
+                    default=128, help='Width of the images')
+parser.add_argument('-ht', '--height', dest='height', type=int,
+                    default=96, help='Height of the images')
 parser.add_argument('--num_workers', type=int, default=4,
                     help='num workers for data loader')
 parser.add_argument('--saveas', type=str, default=None,
                     help='savename for trained model [default: None]')
-
+# model params
+parser.add_argument('--head_feat_in', type=int, default=256,
+                    help='Number of input features for extra layer in head [default: 256]')
+parser.add_argument('--feature_extractor', type=str, default='resnet18',
+                    help='Feature extractor to use in model [default: resnet18]')
 
 if __name__ == '__main__':
     # Parse and print out parameters
@@ -44,9 +52,14 @@ if __name__ == '__main__':
     use_gpu = torch.cuda.is_available()
     print('Gpu is enabled: %s' % use_gpu)
 
-    # Grab model and dataloader from utilities
-    model = model_utils.gazenet_model(use_gpu=use_gpu)
-    dataloader = data_utils.gaze_dataloader(dataset_name=args.dataset,
+    # Create model
+    model = model_utils.GazeNet(use_gpu=use_gpu,
+                                head_feat_in=args.head_feat_in,
+                                feature_extractor=args.feature_extractor)
+
+    # Create dataset
+    dataloader = data_utils.gaze_dataloader(datasets=args.datasets,
+                                            imsize=(args.height, args.width),
                                             batch_size=args.batch_size,
                                             num_workers=args.num_workers)
 
@@ -54,7 +67,7 @@ if __name__ == '__main__':
     criterion = torch.nn.MSELoss()
 
     # We are only optimizing the head of the
-    optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum)
+    optimizer = torch.optim.SGD(model.optim_params, lr=args.lr, momentum=args.momentum)
 
     # Decay LR by a factor of 0.1 every 7 epochs
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
