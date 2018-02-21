@@ -1,4 +1,3 @@
-import os
 import sys
 import argparse
 from pathlib import Path
@@ -16,7 +15,7 @@ This python file collects real gaze images using the webcamera.
 '''
 
 parser = argparse.ArgumentParser(description='Gaze Dataset Collector')
-parser.add_argument('--dataset', type=str, default=datetime.date.today().strftime('gaze_%y%m%d'),
+parser.add_argument('--dataset', type=str, default=datetime.date.today().strftime('gaze_real_%y%m%d'),
                     help='Name to give to dataset[default: None]')
 parser.add_argument('-src', '--source', dest='video_source', type=int,
                     default=0, help='Device index of the camera.')

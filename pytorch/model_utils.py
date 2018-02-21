@@ -14,7 +14,7 @@ def gazenet_model(**kwargs):
     # Modify the model head
     model.avgpool = nn.AdaptiveAvgPool2d(1)  # Allows for different input sizes
     num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 2)
+    model.fc = nn.Linear(num_ftrs, 2, )
 
     if kwargs['use_gpu']:  # Convert to GPU-enabled
         model = model.cuda()
