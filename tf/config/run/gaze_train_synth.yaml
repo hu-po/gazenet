@@ -13,7 +13,7 @@ max_loss : 1000
 best_loss : 1000
 patience : 8
 # Model parameters
-model_yaml : 'models/gaze_resnet.yaml'
+model_yaml : 'saved_models/gaze_resnet.yaml'
 
 
 

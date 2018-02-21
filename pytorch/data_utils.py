@@ -1,16 +1,16 @@
 from pathlib import Path
 import re
+from collections import namedtuple
 import random
 import pandas as pd
 from PIL import Image
 import numpy as np
+import torch
 from torch.autograd import Variable
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 
-# Default values for parameters
-DEFAULT_FILENAME_REGEX = '(\d.\d+)_(\d.\d+).png'
 
 def load_single_image(image_path, imsize):
     """
@@ -31,16 +31,41 @@ def load_single_image(image_path, imsize):
     img = Variable(loader(img))
     # Fake a batch dimension
     img = img.unsqueeze(0)
+    if kwargs['use_gpu']:
+        img = img.cuda()
     return img
+
+def ndimage_to_variable(nd_image, **kwargs):
+    """
+    Converts an incoming np image into a PyTorch variable
+    :param nd_image: (ndarray) image
+    :return: (Variable) image tensor
+    """
+    # Scales to image size and converts to tensor
+    loader = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize(kwargs['imsize']),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    # Strip out 4th channel
+    img_stripped = nd_image[:, :, :3]
+    if kwargs['use_gpu']:
+        img = Variable(loader(img_stripped).cuda())
+    else:
+        img = Variable(loader(img_stripped))
+    # Fake a batch dimension
+    img = img.unsqueeze(0)
+    return img
+
 
 class GazeDataset(Dataset):
     """Gaze Dataset Class. Inherits from PyTorch's Dataset class."""
 
     # Local dataset directory
     root_dir = Path.cwd()
-    data_dir = root_dir / '..' / '..' / 'local' / 'data'
+    data_dir = root_dir / 'data'
 
-    def __init__(self, dataset_name, transform=None, filename_regex=DEFAULT_FILENAME_REGEX):
+    def __init__(self, dataset_name, transform=None, filename_regex='(\d.\d+)_(\d.\d+).png'):
         """
         :dataset_name: (string) name of directory containing all the images
         :filename_regex: (string) regex used to extract gaze data from filename
@@ -128,3 +153,41 @@ class GazeDataset(Dataset):
             ax.set_title('Image %s: (%.2f, %.2f)' % (sample_idx, gaze_x, gaze_y))
             ax.axis('off')
         plt.show()
+
+
+# Custom named tuple is used for retreiving DataLoader objects
+GazeDataLoader = namedtuple('GazeDataLoader', ['dataloader', 'dataset'])
+
+
+def gaze_dataloader(**kwargs):
+    """
+    Creates dataloaders to be used for training a gaze model
+    :return: (dict of namedtuples) contains DataLoaders, GazeDataset
+    """
+
+    # Data transform define transformation applied to each image before being fed into model
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+        'test': transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+    }
+
+    # Populate the return dictionary with datasets and dataloaders
+    return_dict = {}
+    for phase in data_transforms.keys():
+        dataset_name = str(Path(kwargs['dataset_name']) / phase)
+        # Create dataset and dataloader objects
+        dataset = GazeDataset(dataset_name, data_transforms[phase])
+        dataloader = torch.utils.data.DataLoader(dataset,
+                                                 batch_size=kwargs['batch_size'],
+                                                 shuffle=True,
+                                                 num_workers=kwargs['num_workers'])
+        # Push into our custom namedtuple
+        return_dict[phase] = GazeDataLoader(dataloader, dataset)
+    return return_dict

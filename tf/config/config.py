@@ -12,7 +12,7 @@ class Config(object):
     # Local directories contain logs, datasets, saved model
     data_dir = os.path.join(root_dir, 'local', 'data')
     log_dir = os.path.join(root_dir, 'local', 'logs')
-    model_dir = os.path.join(root_dir, 'local', 'models')
+    model_dir = os.path.join(root_dir, 'local', 'saved_models')
     config_dir = os.path.join(root_dir, 'src', 'config')
     # Images dimensions
     image_width = 128

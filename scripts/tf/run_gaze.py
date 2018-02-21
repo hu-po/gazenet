@@ -20,7 +20,7 @@ Sources:
 [2] https://github.com/tensorflow/serving/issues/488
 '''
 
-CHKPT = '/home/ook/repos/gazeGAN/local/models/a8cf9182-fb79-4a50-bdae-c7911f34598f/frozen_graph.pb'
+CHKPT = '/home/ook/repos/gazeGAN/local/saved_models/a8cf9182-fb79-4a50-bdae-c7911f34598f/frozen_graph.pb'
 
 '''
 
