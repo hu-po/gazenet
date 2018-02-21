@@ -31,6 +31,30 @@ def load_single_image(image_path, imsize):
     img = Variable(loader(img))
     # Fake a batch dimension
     img = img.unsqueeze(0)
+    if kwargs['use_gpu']:
+        img = img.cuda()
+    return img
+
+def ndimage_to_variable(nd_image, **kwargs):
+    """
+    Converts an incoming np image into a PyTorch variable
+    :param nd_image: (ndarray) image
+    :return: (Variable) image tensor
+    """
+    # Scales to image size and converts to tensor
+    loader = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize(kwargs['imsize']),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    # Strip out 4th channel
+    img_stripped = nd_image[:, :, :3]
+    if kwargs['use_gpu']:
+        img = Variable(loader(img_stripped).cuda())
+    else:
+        img = Variable(loader(img_stripped))
+    # Fake a batch dimension
+    img = img.unsqueeze(0)
     return img
 
 

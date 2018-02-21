@@ -1,8 +1,6 @@
 import argparse
 import sys
 from pathlib import Path
-import multiprocessing as mp
-import numpy as np
 import cv2
 import torch
 
@@ -10,94 +8,59 @@ import torch
 root_dir = Path.cwd()
 sys.path.append(str(root_dir))
 import scripts.cam_utils as cam_utils
+import pytorch.data_utils as data_utils
 
 '''
 This file is used to run the Gaze Net. It takes images from your webcam, feeds them through the model
 and outputs your current gaze location on the screen.
 '''
 
-parser = argparse.ArgumentParser(description='Gazenet Trainer')
-# learning
+parser = argparse.ArgumentParser(description='Gazenet Runner')
 parser.add_argument('--model', type=str, default=None,
                     help='Model to run[default: None]')
+parser.add_argument('-src', '--source', dest='video_source', type=int,
+                    default=0, help='Device index of the camera.')
+parser.add_argument('-wd', '--width', dest='width', type=int,
+                    default=128, help='Width of the frames in the video stream.')
+parser.add_argument('-ht', '--height', dest='height', type=int,
+                    default=96, help='Height of the frames in the video stream.')
+parser.add_argument('--window_name', type=str, default='GazeNet',
+                    help='Name of window for when running [default: GazeNet]')
+args = parser.parse_args()
 
 
-def load_model():
-    model_path = str(Path.cwd() / 'pytorch' / 'saved_models' / args.model)
-    print('Loading model from %s' % model_path.model)
-    try:
-        model = torch.load(args.snapshot)
-    except Exception as e:
-        raise ImportError('Problem loading model ', e)
-    print(model)
-
-
-def gaze_inference(image_np, sess, model_graph):
-    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
-    image_np_expanded = np.expand_dims(image_np, axis=0)
-
-    # Get input and output to the gaze model
-    input_image = model_graph.get_tensor_by_name('gaze_resnet/input_image')
-    predict = model_graph.get_tensor_by_name('gaze_resnet/output/BiasAdd')
-
-    # Actual detection.
-    gaze_output = sess.run(predict, feed_dict={input_image: image_np_expanded})
-
+def gaze_inference(image_np, model):
+    # Convert input image from numpy
+    input_image = data_utils.ndimage_to_variable(image_np,
+                                                 imsize=(args.height, args.width),
+                                                 use_gpu=True)
+    # Inference (how about them type conversions)
+    gaze_output = model(input_image).cpu().data.numpy().tolist()[0]
     # Visualization of the results of a detection.
-    canvas = cam_utils.screen_plot(gaze_output, image=input_image, window_name=conf.window_name)
+    canvas = cam_utils.screen_plot(gaze_output, image=image_np, window_name=args.window_name)
     return canvas
 
 
-def worker(input_q, output_q):
-    # Load a (frozen) Tensorflow model into memory.
-    model_graph = tf.Graph()
-    # model_checkpoint = os.path.join(conf.model_dir, conf.ckpt_dir, '/checkpoint')
-    with model_graph.as_default():
-        od_graph_def = tf.GraphDef()
-        # with tf.gfile.GFile(model_checkpoint, 'rb') as fid:
-        with tf.gfile.GFile(CHKPT, 'rb') as fid:
-            serialized_graph = fid.read()
-            od_graph_def.ParseFromString(serialized_graph)
-            tf.import_graph_def(od_graph_def, name='')
-
-        sess = tf.Session(graph=model_graph)
-
-    fps = FPS().start()
-    while True:
-        fps.update()
-        frame = input_q.get()
-        output_q.put(gaze_inference(frame, sess, model_graph))
-
-
 if __name__ == '__main__':
-
-    # Parse and print out parameters
-    args = parser.parse_args()
+    # Print out parameters
     print('Gazenet Model Runner. Parameters:')
     for attr, value in args.__dict__.items():
         print('%s : %s' % (attr.upper(), value))
 
-    # Make sure we can use GPU
-    use_gpu = torch.cuda.is_available()
-    print('Gpu is enabled: %s' % use_gpu)
-
-    # Set up config object
-    conf = Config('run/run_gaze.yaml')
-
-    # Set up input and output queues for images
-    input_q = mp.Queue(maxsize=conf.queue_size)
-    output_q = mp.Queue(maxsize=conf.queue_size)
-    pool = mp.Pool(conf.num_workers, worker, (input_q, output_q))
+    # Load Pytorch model from saved models directory
+    model_path = str(Path.cwd() / 'pytorch' / 'saved_models' / args.model)
+    print('Loading model from %s' % model_path)
+    model = torch.load(model_path)
 
     # Start up webcam stream and fps tracker
-    video_capture = WebcamVideoStream(src=conf.video_source, width=conf.image_width, height=conf.image_height).start()
-    fps = FPS().start()
-
+    video_capture = cam_utils.WebcamVideoStream(src=args.video_source,
+                                                width=args.width,
+                                                height=args.height).start()
+    fps = cam_utils.FPS().start()
     while True:  # fps._numFrames < 120
         frame = video_capture.read()
-        input_q.put(frame)
-        output_frame = output_q.get()
-        cv2.imshow(conf.window_name, output_frame)
+        output_frame = gaze_inference(frame, model)
+        cv2.imshow(args.window_name, output_frame)
         fps.update()
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -106,8 +69,6 @@ if __name__ == '__main__':
     fps.stop()
     print('[INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
     print('[INFO] approx. FPS: {:.2f}'.format(fps.fps()))
-    # Clean up threads, camera streams, tf session, etc
-    pool.terminate()
+    # Clean up camera streams, cv2 windows, etc
     video_capture.stop()
     cv2.destroyAllWindows()
-    tf.reset_default_graph()
