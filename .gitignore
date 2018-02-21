@@ -2,8 +2,8 @@
 # Local Files #
 # =========== #
 data/*
-**/logs/*
-**/saved_models/*
+logs/*
+models/*
 
 # =========== #
 #  Notebooks  #
