@@ -58,9 +58,10 @@ def train_gazenet(model, dataloader, criterion, optimizer, scheduler, **kwargs):
             epoch_loss = running_loss / len(dataloader[phase].dataset)
             print('{} Loss: {:.4f}'.format(phase, epoch_loss))
 
-            # Loss
             if kwargs.get('writer', False):
-                writer.
+                # Add loss to tensorboard run
+                loss_name = 'loss/' + phase
+                kwargs['writer'].add_scalar(loss_name, epoch_loss, epoch)
 
             # deep copy the model
             if phase == 'test' and epoch_loss > best_loss:

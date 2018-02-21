@@ -1,6 +1,7 @@
 import argparse
 import sys
 from pathlib import Path
+import datetime
 import torch
 from tensorboardX import SummaryWriter
 
@@ -21,7 +22,7 @@ parser.add_argument('--lr_gamma', type=float, default=0.1,
                     help='gamma in learning rate scheduler[default: 0.1]')
 parser.add_argument('--momentum', type=float, default=0.9,
                     help='optimizer momentum [default: 0.9]')
-parser.add_argument('--num_epochs', type=int, default=25,
+parser.add_argument('--num_epochs', type=int, default=10,
                     help='number of epochs for train [default: 25]')
 parser.add_argument('--batch_size', type=int, default=8,
                     help='batch size for training [default: 8]')
@@ -41,7 +42,9 @@ parser.add_argument('--head_feat_in', type=int, default=256,
                     help='Number of input features for extra layer in head [default: 256]')
 parser.add_argument('--feature_extractor', type=str, default='resnet18',
                     help='Feature extractor to use in model [default: resnet18]')
-
+# logging
+parser.add_argument('--log', type=bool, default=False,
+                    help='Write tensorboard style logs while training [default: False]')
 if __name__ == '__main__':
     # Parse and print out parameters
     args = parser.parse_args()
@@ -75,9 +78,11 @@ if __name__ == '__main__':
                                                 step_size=args.lr_step_size,
                                                 gamma=args.lr_gamma)
 
-    # Write tensorboard logs
-    if args.write_logs:
-        writer = SummaryWriter(log_dir=)
+    # Write tensorboard logs to local logs folder
+    writer = None
+    if args.log:
+        log_dir = root_dir / 'logs' / datetime.datetime.now().strftime('%b%d_%H-%M-%S')
+        writer = SummaryWriter(log_dir=str(log_dir))
 
     # Train the model
     trained_model = train_utils.train_gazenet(model, dataloader,
@@ -88,9 +93,15 @@ if __name__ == '__main__':
 
     # Save the model to local directory
     if args.saveas is not None:
-        save_path = str(root_dir / 'src' / 'models' / args.saveas) + '.pt'
+        save_path = str(root_dir / 'models' / args.saveas) + '.pt'
         print('Saving model to %s' % save_path)
         torch.save(trained_model, save_path)
         print('...done')
+
+    # Close writer
+    try:
+        writer.close()
+    except:
+        pass
 
     print('Training Complete!')
