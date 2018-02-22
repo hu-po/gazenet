@@ -18,8 +18,9 @@ class GazeNet(nn.Module):
         else:
             raise Exception('Must provide a valid Feature extractor for GazeNet model')
         # Freeze the feature extractor
-        for param in self.base.parameters():
-            param.requires_grad = False
+        if kwargs.get('freeze_base', False):
+            for param in self.base.parameters():
+                param.requires_grad = False
 
         # Modify the output of feature extractor to match head input
         self.base.avgpool = nn.AdaptiveAvgPool2d(1)  # Allows for different input sizes
