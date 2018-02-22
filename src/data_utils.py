@@ -9,7 +9,6 @@ import torch
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
 
 
 def load_single_image(image_path, imsize):
@@ -150,6 +149,7 @@ class GazeDataset(Dataset):
         Plots random sample images
         :num_images: (int) number of images to plot per dataset
         """
+        import matplotlib.pyplot as plt
         fig = plt.figure()
         for i in range(num_images):
             sample_idx = random.randint(0, self.__len__())
