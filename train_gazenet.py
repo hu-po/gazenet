@@ -28,6 +28,8 @@ parser.add_argument('--batch_size', type=int, default=8,
 # data
 parser.add_argument('--datasets', type=str,
                     help='comma separated list of datasets to train on')
+parser.add_argument('--test', type=bool, default=False,
+                    help='Test on explicit test dataset')
 parser.add_argument('-wd', '--width', dest='width', type=int,
                     default=128, help='Width of the images')
 parser.add_argument('-ht', '--height', dest='height', type=int,
@@ -65,7 +67,8 @@ if __name__ == '__main__':
     dataloader = data_utils.gaze_dataloader(datasets=args.datasets,
                                             imsize=(args.height, args.width),
                                             batch_size=args.batch_size,
-                                            num_workers=args.num_workers)
+                                            num_workers=args.num_workers,
+                                            test=args.test)
 
     # Criterion (aka loss) is just simple MSE
     criterion = torch.nn.MSELoss()

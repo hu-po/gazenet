@@ -193,8 +193,11 @@ def gaze_dataloader(**kwargs):
     # Populate the return dictionary with datasets and dataloaders
     return_dict = {}
     for phase in data_transforms.keys():
-        # Create dataset and dataloader objects
-        dataset = GazeDataset(kwargs['datasets'], phase, data_transforms[phase])
+        if phase == 'test' and kwargs.get('test', False):
+            dataset = 'test_dataset' # Use explicit test dataset
+        else:
+            dataset = kwargs['datasets']
+        dataset = GazeDataset(dataset, phase, data_transforms[phase])
         dataloader = torch.utils.data.DataLoader(dataset,
                                                  batch_size=kwargs['batch_size'],
                                                  shuffle=True,

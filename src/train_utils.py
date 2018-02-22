@@ -2,6 +2,7 @@ import time
 import copy
 import torch
 
+
 def train_gazenet(model, dataloader, criterion, optimizer, scheduler, **kwargs):
     """
     Trains a gazenet model

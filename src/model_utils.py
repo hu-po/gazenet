@@ -1,4 +1,5 @@
 from itertools import chain
+import torch
 import torchvision
 import torch.nn as nn
 
@@ -43,3 +44,29 @@ class GazeNet(nn.Module):
         features = self.base(x)
         output = self.head(features)
         return output
+
+
+class StyleTransfer(nn.Module):
+
+    def __init__(self, **kwargs):
+        super(StyleTransfer, self).__init__()
+        if kwargs['feature_extractor'] == 'vgg19':
+            self.base = torchvision.models.vgg19(pretrained=True).features
+        else:
+            raise Exception('Must provide a valid Feature extractor for GazeNet model')
+        # Freeze the feature extractor
+        for param in self.base.parameters():
+            param.requires_grad = False
+        # Style and content losses are calculated on specific layers
+        self.content_layers = kwargs.get('content_layers', ['conv_1'])
+        self.style_layers = kwargs.get('style_layers',
+                                       ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5'])
+
+
+    def forward(self, x):
+        """
+        Feed forward function for our net
+        :param x: (Variable) input data
+        :return: (Variable) output data
+        """
+        pass
