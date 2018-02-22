@@ -2,7 +2,6 @@ import time
 import copy
 import torch
 
-
 def train_gazenet(model, dataloader, criterion, optimizer, scheduler, **kwargs):
     """
     Trains a gazenet model
@@ -59,6 +58,9 @@ def train_gazenet(model, dataloader, criterion, optimizer, scheduler, **kwargs):
             print('{} Loss: {:.4f}'.format(phase, epoch_loss))
 
             if kwargs.get('writer', False):
+                # Add example input and output
+                kwargs['writer'].add_image('image', inputs, epoch)
+                kwargs['writer'].add_text('output', str(outputs), epoch)
                 # Add loss to tensorboard run
                 loss_name = 'loss/' + phase
                 kwargs['writer'].add_scalar(loss_name, epoch_loss, epoch)
