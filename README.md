@@ -43,3 +43,4 @@ Real data collection is expensive and uses precious time.
 ## Sources
 
 [1] [Learning from Simulated and Unsupervised Images through Adversarial Training](https://arxiv.org/abs/1612.07828).
+[2] [Eye Tracking for Everyone](http://gazecapture.csail.mit.edu/)
