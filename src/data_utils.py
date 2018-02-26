@@ -34,6 +34,7 @@ def load_single_image(image_path, imsize):
         img = img.cuda()
     return img
 
+
 def ndimage_to_variable(nd_image, **kwargs):
     """
     Converts an incoming np image into a PyTorch variable
@@ -194,7 +195,7 @@ def gaze_dataloader(**kwargs):
     return_dict = {}
     for phase in data_transforms.keys():
         if phase == 'test' and kwargs.get('test', False):
-            dataset = 'test_dataset' # Use explicit test dataset
+            dataset = 'test_dataset'  # Use explicit test dataset
         else:
             dataset = kwargs['datasets']
         dataset = GazeDataset(dataset, phase, data_transforms[phase])
