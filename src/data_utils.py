@@ -11,28 +11,32 @@ from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 
 
-def load_single_image(image_path, imsize):
+def load_image_ndarray(image_path):
     """
-    Loads a single image from file
+    Returns a single datapoint at a given index
     :param image_path: (string) filepath for image
-    :param imsize: (tuple) desired image size
-    :return: (Variable) image tensor
+    :return: (ndarray) 3-channel image
     """
-    # Scales to image size and converts to tensor
-    loader = transforms.Compose([
-        transforms.Resize(imsize),
-        transforms.ToTensor()])
-    img = Image.open(image_path)
+    # Load image using PIL
+    image = Image.open(image_path)
     # Strip out 4th channel
-    img_array = np.array(img)
+    img_array = np.array(image)
     img_stripped = img_array[:, :, :3]
-    img = Image.fromarray(img_stripped)
-    img = Variable(loader(img))
-    # Fake a batch dimension
-    img = img.unsqueeze(0)
-    if kwargs['use_gpu']:
-        img = img.cuda()
-    return img
+    image = Image.fromarray(img_stripped)
+    return image
+
+
+def plot_image(image):
+    """
+    Plots an image using PIL
+    :param image: (PILImage) image to plot
+    """
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.tight_layout()
+    plt.imshow(image)
+    plt.axis('off')
+    plt.show()
 
 
 def ndimage_to_variable(nd_image, **kwargs):
@@ -63,31 +67,75 @@ class GazeDataset(Dataset):
 
     # Local dataset directory
     root_dir = Path.cwd()
-    data_dir = root_dir / 'data'
+    data_dir = root_dir / '..' / 'data'
 
-    def __init__(self, datasets, phase, transform=None, filename_regex='(\d.\d+)_(\d.\d+).png'):
+    @classmethod
+    def synthetic_dataset(cls, datasets, phase, transform=None):
+        """
+        Constructor for a synthetic "fake" dataset
+        :return: object
+        """
+        cls.generic_init(datasets, phase, transform)
+        cls.dataset_type = 'fake'
+        cls.columns = ['imagepath', 'gaze_x', 'gaze_y', 'bb_left', 'bb_upper', 'bb_right', 'bb_lower']
+        return cls
+
+    @classmethod
+    def real(cls, datasets, phase, transform=None):
+        """
+        Constructor for a real gaze dataset
+        :return: object
+        """
+        cls.generic_init(datasets, phase, transform)
+        cls.dataset_type = 'real'
+        cls.columns = ['imagepath', 'gaze_x', 'gaze_y']
+        return cls
+
+    def generic_init(self, datasets, phase, transform=None):
         """
         :dataset_name: (string) comma separated list of datasets
         :phase: (string) either 'test' or 'train'
-        :filename_regex: (string) regex used to extract gaze data from filename
         :transform: (optional callable) transform to be applied to image
         """
         self.datasets = datasets.split(',')
         self.phase = phase
-        self.filename_regex = filename_regex
         self.transform = transform
         self.dataset = self._load_dataset()
 
-    def _extract_target_from_gazefilename(self, imagepath):
+    def _extract_target_from_gazefilename(self, imagepath, filename_regex='(\d.\d+)_(\d.\d+).png'):
         """
         Extract the label from the image path name
         :imagepath: (Path) image path (contains target)
+        :filename_regex: (string) regex used to extract gaze data from filename
         :return: tuple(int, int) gaze target
         """
-        m = re.search(self.filename_regex, imagepath.name)
+        m = re.search(filename_regex, imagepath.name)
         gaze_x = float(m.group(1))
         gaze_y = float(m.group(2))
         return gaze_x, gaze_y
+
+    def _bounding_box(self, image_path, default_color=(255, 0, 255), plot=False):
+        """
+        Uses PIL to get bounding box of face/shoulders for a synthetic image
+        :param image_path: (Path) image path
+        :param default_color: (3-tuple) default or "green-screen" color
+        :param plot: (bool) plot image for debug purposes
+        :return: left, upper, right, lower coordinates of bbox
+        """
+        # Need the image in ndarray form to get bounding box
+        image = load_image_ndarray(image_path)
+        # Change default color pixels to zero
+        image[np.where((image == default_color).all(axis=2))] = [0, 0, 0]
+        # use PIL function to get bounding box over non-zero
+        pil_image = Image.fromarray(image)
+        left, upper, right, lower = pil_image.getbbox()
+        # Plot bounding box image
+        if plot:
+            from PIL import ImageDraw
+            draw = ImageDraw.Draw(pil_image)
+            draw.rectangle([left, upper, right, lower])
+            plot_image(pil_image)
+        return left, upper, right, lower
 
     def _load_dataset(self):
         """
@@ -105,28 +153,16 @@ class GazeDataset(Dataset):
             print('Found %s images in dataset %s' % (dataset_size, str(data_path)))
         print('Combined dataset contains %s images.' % len(image_list))
         # Create new pandas dataframe
-        df = pd.DataFrame(index=list(range(len(image_list))),
-                          columns=['imagepath', 'gaze_x', 'gaze_y'])
+        df = pd.DataFrame(index=list(range(len(image_list))), columns=self.columns)
         # Add all images in dataset folder into dataframe
         for i, imagepath in enumerate(image_list):
             gaze_x, gaze_y = self._extract_target_from_gazefilename(imagepath)
-            df.loc[i] = [imagepath, gaze_x, gaze_y]
+            if self.dataset_type == 'fake':
+                left, upper, right, lower = self._bounding_box(imagepath)  # , plot=True) # DEBUG
+                df.loc[i] = [imagepath, gaze_x, gaze_y, left, upper, right, lower]
+            elif self.dataset_type == 'real':
+                df.loc[i] = [imagepath, gaze_x, gaze_y]
         return df
-
-    def _get_datapoint(self, idx):
-        """
-        Returns a single datapoint at a given index
-        :param idx: (int) index of datapoint to retreive
-        """
-        # Load image using PIL
-        image = Image.open(self.dataset.iloc[idx, 0])
-        # Strip out 4th channel
-        img_array = np.array(image)
-        img_stripped = img_array[:, :, :3]
-        image = Image.fromarray(img_stripped)
-        gaze_x = self.dataset.iloc[idx, 1]
-        gaze_y = self.dataset.iloc[idx, 2]
-        return image, gaze_x, gaze_y
 
     def __len__(self):
         return len(self.dataset)
@@ -137,12 +173,14 @@ class GazeDataset(Dataset):
         :param idx: (int) index of datapoint to retreive
         :return sample: (dict) image, gaze target
         """
-        image, gaze_x, gaze_y = self._get_datapoint(idx)
+        image = load_image_ndarray(self.dataset.iloc[idx, 0])
         # Apply transform if necessary
         if self.transform:
             image = self.transform(image)
         # Put info into a dictionary
-        sample = {'image': image, 'gaze_x': gaze_x, 'gaze_y': gaze_y}
+        sample = {'image': image}
+        for i, col_name in enumerate(self.columns, 1):
+            sample[col_name] = self.dataset.iloc[i, 1]
         return sample
 
     def plot_samples(self, num_images=3):
@@ -151,15 +189,17 @@ class GazeDataset(Dataset):
         :num_images: (int) number of images to plot per dataset
         """
         import matplotlib.pyplot as plt
-        fig = plt.figure()
+        plt.figure()
         for i in range(num_images):
             sample_idx = random.randint(0, self.__len__())
-            image, gaze_x, gaze_y = self._get_datapoint(sample_idx)
+            sample = self.__getitem__(sample_idx)
             # Use sublots to plot all of them
             ax = plt.subplot(1, num_images, i + 1)
             plt.tight_layout()
-            plt.imshow(image)
-            ax.set_title('Image %s: (%.2f, %.2f)' % (sample_idx, gaze_x, gaze_y))
+            plt.imshow(sample['image'])
+            ax.set_title('Image %s: (%.2f, %.2f)' % (sample_idx,
+                                                     sample['gaze_x'],
+                                                     sample['gaze_y']))
             ax.axis('off')
         plt.show()
 
