@@ -62,6 +62,43 @@ def ndimage_to_variable(nd_image, **kwargs):
     return img
 
 
+def _extract_target_from_gazefilename(imagepath, filename_regex='(\d.\d+)_(\d.\d+).png'):
+    """
+    Extract the label from the image path name
+    :imagepath: (Path) image path (contains target)
+    :filename_regex: (string) regex used to extract gaze data from filename
+    :return: tuple(int, int) gaze target
+    """
+    m = re.search(filename_regex, imagepath.name)
+    gaze_x = float(m.group(1))
+    gaze_y = float(m.group(2))
+    return gaze_x, gaze_y
+
+
+def _bounding_box(image_path, default_color=(255, 0, 255), plot=False):
+    """
+    Uses PIL to get bounding box of face/shoulders for a synthetic image
+    :param image_path: (Path) image path
+    :param default_color: (3-tuple) default or "green-screen" color
+    :param plot: (bool) plot image for debug purposes
+    :return: left, upper, right, lower coordinates of bbox
+    """
+    # Need the image in ndarray form to get bounding box
+    image = load_image_ndarray(image_path)
+    # Change default color pixels to zero
+    image[np.where((image == default_color).all(axis=2))] = [0, 0, 0]
+    # use PIL function to get bounding box over non-zero
+    pil_image = Image.fromarray(image)
+    left, upper, right, lower = pil_image.getbbox()
+    # Plot bounding box image
+    if plot:
+        from PIL import ImageDraw
+        draw = ImageDraw.Draw(pil_image)
+        draw.rectangle([left, upper, right, lower])
+        plot_image(pil_image)
+    return left, upper, right, lower
+
+
 class GazeDataset(Dataset):
     """Gaze Dataset Class. Inherits from PyTorch's Dataset class."""
 
@@ -102,41 +139,6 @@ class GazeDataset(Dataset):
         self.transform = transform
         self.dataset = self._load_dataset()
 
-    def _extract_target_from_gazefilename(self, imagepath, filename_regex='(\d.\d+)_(\d.\d+).png'):
-        """
-        Extract the label from the image path name
-        :imagepath: (Path) image path (contains target)
-        :filename_regex: (string) regex used to extract gaze data from filename
-        :return: tuple(int, int) gaze target
-        """
-        m = re.search(filename_regex, imagepath.name)
-        gaze_x = float(m.group(1))
-        gaze_y = float(m.group(2))
-        return gaze_x, gaze_y
-
-    def _bounding_box(self, image_path, default_color=(255, 0, 255), plot=False):
-        """
-        Uses PIL to get bounding box of face/shoulders for a synthetic image
-        :param image_path: (Path) image path
-        :param default_color: (3-tuple) default or "green-screen" color
-        :param plot: (bool) plot image for debug purposes
-        :return: left, upper, right, lower coordinates of bbox
-        """
-        # Need the image in ndarray form to get bounding box
-        image = load_image_ndarray(image_path)
-        # Change default color pixels to zero
-        image[np.where((image == default_color).all(axis=2))] = [0, 0, 0]
-        # use PIL function to get bounding box over non-zero
-        pil_image = Image.fromarray(image)
-        left, upper, right, lower = pil_image.getbbox()
-        # Plot bounding box image
-        if plot:
-            from PIL import ImageDraw
-            draw = ImageDraw.Draw(pil_image)
-            draw.rectangle([left, upper, right, lower])
-            plot_image(pil_image)
-        return left, upper, right, lower
-
     def _load_dataset(self):
         """
         Loads dataset into a pandas dataframe
@@ -156,9 +158,9 @@ class GazeDataset(Dataset):
         df = pd.DataFrame(index=list(range(len(image_list))), columns=self.columns)
         # Add all images in dataset folder into dataframe
         for i, imagepath in enumerate(image_list):
-            gaze_x, gaze_y = self._extract_target_from_gazefilename(imagepath)
+            gaze_x, gaze_y = _extract_target_from_gazefilename(imagepath)
             if self.dataset_type == 'fake':
-                left, upper, right, lower = self._bounding_box(imagepath)  # , plot=True) # DEBUG
+                left, upper, right, lower = _bounding_box(imagepath)  # , plot=True) # DEBUG
                 df.loc[i] = [imagepath, gaze_x, gaze_y, left, upper, right, lower]
             elif self.dataset_type == 'real':
                 df.loc[i] = [imagepath, gaze_x, gaze_y]
@@ -238,7 +240,7 @@ def gaze_dataloader(**kwargs):
             dataset = 'test_dataset'  # Use explicit test dataset
         else:
             dataset = kwargs['datasets']
-        dataset = GazeDataset(dataset, phase, data_transforms[phase])
+        dataset = GazeDataset.real(dataset, phase, data_transforms[phase])
         dataloader = torch.utils.data.DataLoader(dataset,
                                                  batch_size=kwargs['batch_size'],
                                                  shuffle=True,
