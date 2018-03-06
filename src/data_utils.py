@@ -10,6 +10,10 @@ from torch.autograd import Variable
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 
+# Relative local directories
+ROOT_DIR = Path.cwd()
+DATA_DIR = ROOT_DIR / '..' / 'data'
+
 
 def load_image_ndarray(image_path):
     """
@@ -22,8 +26,7 @@ def load_image_ndarray(image_path):
     # Strip out 4th channel
     img_array = np.array(image)
     img_stripped = img_array[:, :, :3]
-    image = Image.fromarray(img_stripped)
-    return image
+    return img_stripped
 
 
 def plot_image(image):
@@ -99,36 +102,45 @@ def _bounding_box(image_path, default_color=(255, 0, 255), plot=False):
     return left, upper, right, lower
 
 
+class BackgroundMask(object):
+    """Transform adds a background image to a given fake image sample dict"""
+
+    def __init__(self, background_dataset=None, default_color=(255, 0, 255)):
+        self.background_dataset = DATA_DIR / background_dataset
+        self.default_color = default_color
+
+    def _random_background(self, imsize):
+        """
+        Pick a random background image from dataset
+        :param imsize: (tuple) height and width of image
+        :return: (ndarray) background image
+        """
+        # Choose random background image
+        random_image_path = random.choice(self.background_dataset.glob('*.png'))
+        background_img = Image.open(str(random_image_path))
+        # Use size from original image to crop background
+        background_loader = transforms.Compose([
+            transforms.RandomCrop(imsize)
+        ])
+        img = background_loader(background_img)
+        return np.array(img)  # Return as ndarray
+
+    def __call__(self, sample):
+        image = sample['image']
+        h, w = image.shape[:2]
+        background_image = self._random_background((h, w))
+        # Use default color to mask array and combine
+        mask = np.where((image == self.default_color).all(axis=2))
+        background_image[mask] = image[mask]
+        # Put the image back into the sample dictionary
+        sample['image'] = background_image
+        return sample
+
+
 class GazeDataset(Dataset):
     """Gaze Dataset Class. Inherits from PyTorch's Dataset class."""
 
-    # Local dataset directory
-    root_dir = Path.cwd()
-    data_dir = root_dir / '..' / 'data'
-
-    @classmethod
-    def synthetic_dataset(cls, datasets, phase, transform=None):
-        """
-        Constructor for a synthetic "fake" dataset
-        :return: object
-        """
-        cls.generic_init(datasets, phase, transform)
-        cls.dataset_type = 'fake'
-        cls.columns = ['imagepath', 'gaze_x', 'gaze_y', 'bb_left', 'bb_upper', 'bb_right', 'bb_lower']
-        return cls
-
-    @classmethod
-    def real(cls, datasets, phase, transform=None):
-        """
-        Constructor for a real gaze dataset
-        :return: object
-        """
-        cls.generic_init(datasets, phase, transform)
-        cls.dataset_type = 'real'
-        cls.columns = ['imagepath', 'gaze_x', 'gaze_y']
-        return cls
-
-    def generic_init(self, datasets, phase, transform=None):
+    def __init__(self, datasets, phase, dataset_type='real', transform=None):
         """
         :dataset_name: (string) comma separated list of datasets
         :phase: (string) either 'test' or 'train'
@@ -136,6 +148,11 @@ class GazeDataset(Dataset):
         """
         self.datasets = datasets.split(',')
         self.phase = phase
+        self.dataset_type = dataset_type
+        if self.dataset_type == 'real':
+            self.columns = ['imagepath', 'gaze_x', 'gaze_y']
+        elif self.dataset_type == 'fake':
+            self.columns = ['imagepath', 'gaze_x', 'gaze_y', 'bb_left', 'bb_upper', 'bb_right', 'bb_lower']
         self.transform = transform
         self.dataset = self._load_dataset()
 
@@ -149,7 +166,7 @@ class GazeDataset(Dataset):
         for dataset in self.datasets:
             image_list_size = len(image_list)
             data_path = Path(dataset) / self.phase
-            full_path = GazeDataset.data_dir / data_path
+            full_path = DATA_DIR / data_path
             image_list.extend(full_path.glob('*.png'))
             dataset_size = len(image_list) - image_list_size
             print('Found %s images in dataset %s' % (dataset_size, str(data_path)))
@@ -240,7 +257,7 @@ def gaze_dataloader(**kwargs):
             dataset = 'test_dataset'  # Use explicit test dataset
         else:
             dataset = kwargs['datasets']
-        dataset = GazeDataset.real(dataset, phase, data_transforms[phase])
+        dataset = GazeDataset(dataset, phase, transform=data_transforms[phase])
         dataloader = torch.utils.data.DataLoader(dataset,
                                                  batch_size=kwargs['batch_size'],
                                                  shuffle=True,
