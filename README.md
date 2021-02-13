@@ -1,3 +1,5 @@
+** NO LONGER MAINTAINED, USE AT YOUR OWN RISK **
+
 # GazeNet
 
 GazeNet tracks the gaze location of a laptop user using the image from their webcam.
